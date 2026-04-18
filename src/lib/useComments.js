@@ -27,7 +27,7 @@ export function useComments(listingId) {
 
     load()
 
-    // Real-time subscription — new comments appear live
+    // Real-time subscription — handles inserts, updates, and deletes
     const channel = supabase
       .channel(`comments-${listingId}`)
       .on(
@@ -47,6 +47,13 @@ export function useComments(listingId) {
         { event: 'UPDATE', schema: 'public', table: 'comments', filter: `listing_id=eq.${listingId}` },
         (payload) => {
           setComments(prev => prev.map(c => c.id === payload.new.id ? { ...c, ...payload.new } : c))
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'comments', filter: `listing_id=eq.${listingId}` },
+        (payload) => {
+          setComments(prev => prev.filter(c => c.id !== payload.old.id))
         }
       )
       .subscribe()
