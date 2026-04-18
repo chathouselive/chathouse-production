@@ -5,6 +5,12 @@ import SignUp from './pages/SignUp'
 import Home from './pages/Home'
 import ListingDetail from './pages/ListingDetail'
 import AddListing from './pages/AddListing'
+import AdminOverview from './pages/admin/AdminOverview'
+import AdminVerifications from './pages/admin/AdminVerifications'
+import AdminPhotos from './pages/admin/AdminPhotos'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminListings from './pages/admin/AdminListings'
+import AdminSync from './pages/admin/AdminSync'
 
 function LoadingScreen() {
   return (
@@ -52,6 +58,12 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/listing/:id" element={<ProtectedRoute><ListingDetail /></ProtectedRoute>} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminOverview /></ProtectedRoute>} />
+      <Route path="/admin/verifications" element={<ProtectedRoute><AdminVerifications /></ProtectedRoute>} />
+      <Route path="/admin/photos" element={<ProtectedRoute><AdminPhotos /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+      <Route path="/admin/listings" element={<ProtectedRoute><AdminListings /></ProtectedRoute>} />
+      <Route path="/admin/sync" element={<ProtectedRoute><AdminSync /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
