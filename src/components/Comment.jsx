@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useAuth } from '../lib/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const ROLE_STYLES = {
   'Past Tenant (Verified)': { bg: '#dcfce7', color: '#166534', icon: '✓' },
@@ -27,11 +29,28 @@ function timeAgo(date) {
 }
 
 export default function Comment({ comment, onLike }) {
-  const { user } = useAuth()
+  const { profile: currentUserProfile } = useAuth()
+  const [deleting, setDeleting] = useState(false)
+
   const profile = comment.profile || {}
   const displayName = comment.is_anonymous ? 'Anonymous Tenant' : profile.name || 'User'
   const initial = (comment.is_anonymous ? 'A' : (profile.name?.[0] || '?')).toUpperCase()
   const roleStyle = ROLE_STYLES[comment.role_label] || ROLE_STYLES['Local']
+
+  const canAdmin = currentUserProfile?.is_admin
+
+  async function handleDelete() {
+    if (!window.confirm('Delete this comment permanently?')) return
+    setDeleting(true)
+    const { error } = await supabase.from('comments').delete().eq('id', comment.id)
+    if (error) {
+      setDeleting(false)
+      alert('Failed to delete: ' + error.message)
+    }
+    // Real-time subscription will remove it from the list
+  }
+
+  if (comment.is_hidden) return null
 
   return (
     <div style={styles.comment}>
@@ -46,6 +65,11 @@ export default function Comment({ comment, onLike }) {
           )}
           {profile.is_admin && <span style={styles.adminBadge}>ADMIN</span>}
           <span style={styles.time}>· {timeAgo(comment.created_at)}</span>
+          {canAdmin && (
+            <button onClick={handleDelete} disabled={deleting} style={styles.deleteBtn} title="Delete (admin)">
+              🗑
+            </button>
+          )}
         </div>
         <p style={styles.text}>{comment.text}</p>
         <div style={styles.actions}>
@@ -72,6 +96,12 @@ const styles = {
   role: { fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 },
   adminBadge: { fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: '#0f172a', color: '#fff', letterSpacing: 0.5 },
   time: { fontSize: 11, color: '#94a3b8' },
+  deleteBtn: {
+    marginLeft: 'auto',
+    background: 'transparent', border: 'none',
+    fontSize: 12, padding: '2px 6px', cursor: 'pointer',
+    color: '#94a3b8', borderRadius: 4,
+  },
   text: { fontSize: 14, color: '#334155', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
   actions: { marginTop: 8, display: 'flex', gap: 14 },
   likeBtn: {
