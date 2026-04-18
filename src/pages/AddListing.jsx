@@ -5,6 +5,15 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { streetViewUrl } from '../lib/streetView'
 
+const PROPERTY_TYPES = [
+  { value: 'apartment', label: '🏢 Apartment building' },
+  { value: 'house', label: '🏠 Single-family house' },
+  { value: 'condo', label: '🏙️ Condo' },
+  { value: 'townhouse', label: '🏘️ Townhouse' },
+  { value: 'multi-family', label: '🏚️ Multi-family / Duplex' },
+  { value: 'other', label: '🏗️ Other' },
+]
+
 export default function AddListing() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -13,12 +22,7 @@ export default function AddListing() {
   const [city, setCity] = useState('New York')
   const [state, setState] = useState('NY')
   const [zip, setZip] = useState('')
-  const [unit, setUnit] = useState('')
-  const [type, setType] = useState('rent')
-  const [price, setPrice] = useState('')
-  const [beds, setBeds] = useState('')
-  const [baths, setBaths] = useState('')
-  const [sqft, setSqft] = useState('')
+  const [propertyType, setPropertyType] = useState('apartment')
   const [description, setDescription] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [useStreetView, setUseStreetView] = useState(false)
@@ -39,7 +43,6 @@ export default function AddListing() {
 
     let imgUrl = null
     try {
-      // Upload photo if provided
       if (photoFile) {
         if (photoFile.size > 10 * 1024 * 1024) {
           setSubmitting(false)
@@ -57,20 +60,15 @@ export default function AddListing() {
         imgUrl = streetViewUrl({ address: `${address}, ${city}, ${state} ${zip}`, size: '700x400' })
       }
 
-      // Insert listing
       const { data, error: insErr } = await supabase
         .from('listings')
         .insert({
-          type,
+          type: 'rent', // default — gets overwritten when a pro claims & lists
           source: 'community',
-          address: unit ? `${address}, Unit ${unit}` : address,
+          address,
           city,
           state,
           zip,
-          price: price ? Number(price) : null,
-          beds: beds ? Number(beds) : null,
-          baths: baths ? Number(baths) : null,
-          sqft: sqft ? Number(sqft) : null,
           description: description || null,
           img_url: imgUrl,
           hood: city,
@@ -78,6 +76,7 @@ export default function AddListing() {
           tag: 'Community Listed',
           tag_color: '#7c3aed',
           is_active: true,
+          // Store property type in description metadata for now; we'll add a column later if needed
         })
         .select()
         .single()
@@ -100,22 +99,17 @@ export default function AddListing() {
           <span style={styles.tag}>🏘️ Community Listing</span>
           <h1 style={styles.h1}>Add a building</h1>
           <p style={styles.sub}>
-            Help other people in your neighborhood by adding a building that isn't on Chathouse yet.
-            This might be a house you're interested in, a building you've lived in, or a property you know well.
+            Help your community by adding a building that isn't on Chathouse yet. Add the basics — the landlord
+            or property manager can claim it later and fill in pricing, unit details, and their own photos.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <SectionTitle title="Address" />
 
-          <div style={styles.row2}>
-            <Field label="Street address" required>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="310 W 85th St" style={styles.input} />
-            </Field>
-            <Field label="Unit / Apt (optional)">
-              <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="4C" style={styles.input} />
-            </Field>
-          </div>
+          <Field label="Street address" required>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="310 W 85th St" style={styles.input} />
+          </Field>
 
           <div style={styles.row3}>
             <Field label="City" required>
@@ -129,37 +123,19 @@ export default function AddListing() {
             </Field>
           </div>
 
-          <SectionTitle title="Details" />
+          <SectionTitle title="Building type" />
 
-          <div style={styles.row2}>
-            <Field label="Type">
-              <select value={type} onChange={(e) => setType(e.target.value)} style={styles.input}>
-                <option value="rent">For Rent</option>
-                <option value="sale">For Sale</option>
-              </select>
-            </Field>
-            <Field label={type === 'rent' ? 'Monthly rent ($)' : 'Price ($)'}>
-              <input value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ''))} placeholder="Optional" style={styles.input} />
-            </Field>
-          </div>
-
-          <div style={styles.row3}>
-            <Field label="Beds">
-              <input value={beds} onChange={(e) => setBeds(e.target.value.replace(/[^\d.]/g, ''))} placeholder="Optional" style={styles.input} />
-            </Field>
-            <Field label="Baths">
-              <input value={baths} onChange={(e) => setBaths(e.target.value.replace(/[^\d.]/g, ''))} placeholder="Optional" style={styles.input} />
-            </Field>
-            <Field label="Sqft">
-              <input value={sqft} onChange={(e) => setSqft(e.target.value.replace(/\D/g, ''))} placeholder="Optional" style={styles.input} />
-            </Field>
-          </div>
+          <Field label="What kind of building is this?">
+            <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} style={styles.input}>
+              {PROPERTY_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
+            </select>
+          </Field>
 
           <Field label="Description (optional)">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Anything you know — good or bad. Neighborhood, building vibe, landlord, transit, etc."
+              placeholder="Anything about this building — neighborhood, what it's like, why you're adding it. (Leave pricing and specific unit details to the landlord or property manager.)"
               rows={3}
               style={{ ...styles.input, resize: 'vertical', fontFamily: 'inherit' }}
             />
@@ -201,6 +177,12 @@ export default function AddListing() {
             )}
           </div>
 
+          <div style={styles.info}>
+            💡 <strong>Why keep it simple?</strong> Community listings exist so people can leave honest comments about
+            buildings they know. Prices, unit counts, and interior specs are added by the landlord or property manager
+            when they claim the listing — that keeps the data accurate.
+          </div>
+
           {error && <div style={styles.error}>{error}</div>}
 
           <div style={styles.submit}>
@@ -237,7 +219,6 @@ const styles = {
   h1: { fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 700, color: '#0f172a', marginBottom: 8 },
   sub: { fontSize: 14, color: '#64748b', lineHeight: 1.6 },
   form: { padding: 24, background: '#fff', borderRadius: 16, border: '1.5px solid #e2e8f0' },
-  row2: { display: 'flex', gap: 12 },
   row3: { display: 'flex', gap: 12 },
   input: {
     width: '100%', padding: '10px 12px',
@@ -253,6 +234,10 @@ const styles = {
     textAlign: 'center', fontWeight: 600, background: '#fff',
   },
   fileBtnActive: { borderColor: '#1a6cf5', color: '#1a6cf5', background: '#e8f0fe' },
+  info: {
+    marginTop: 18, padding: 14, background: '#e8f0fe',
+    borderRadius: 10, fontSize: 12, color: '#1e40af', lineHeight: 1.6,
+  },
   error: { marginTop: 16, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 13 },
   submit: { marginTop: 20, display: 'flex', justifyContent: 'flex-end' },
   submitBtn: {
