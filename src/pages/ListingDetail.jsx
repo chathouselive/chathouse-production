@@ -1,15 +1,20 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import TopNav from '../components/TopNav'
 import Comment from '../components/Comment'
 import CommentForm from '../components/CommentForm'
+import VerifyTenantModal from '../components/VerifyTenantModal'
 import { useListing } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
+import { useVerification } from '../lib/useVerification'
 import { getListingImage } from '../lib/streetView'
 
 export default function ListingDetail() {
   const { id } = useParams()
   const { listing, loading } = useListing(id)
   const { comments, loading: loadingComments, postComment, toggleLike } = useComments(id)
+  const { status: verificationStatus, submitVerification } = useVerification(id)
+  const [showVerifyModal, setShowVerifyModal] = useState(false)
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
@@ -31,7 +36,9 @@ export default function ListingDetail() {
   )
 
   const img = getListingImage(listing)
-  const priceStr = listing.type === 'rent' ? `$${Number(listing.price).toLocaleString()}/mo` : `$${Number(listing.price).toLocaleString()}`
+  const priceStr = listing.price
+    ? (listing.type === 'rent' ? `$${Number(listing.price).toLocaleString()}/mo` : `$${Number(listing.price).toLocaleString()}`)
+    : 'Price not listed'
   const isCommunity = listing.source === 'community'
 
   return (
@@ -63,7 +70,7 @@ export default function ListingDetail() {
             <div>
               <div style={styles.price}>{priceStr}</div>
               <div style={styles.address}>{listing.address}</div>
-              <div style={styles.hood}>📍 {listing.hood || listing.city}</div>
+              <div style={styles.hood}>📍 {listing.hood || listing.city}{listing.state ? `, ${listing.state}` : ''}</div>
             </div>
           </div>
 
@@ -81,12 +88,14 @@ export default function ListingDetail() {
         <div style={styles.commentsSection}>
           <div style={styles.commentsHead}>
             <h2 style={styles.h2}>Community</h2>
-            <p style={styles.sub}>
-              Honest comments from people who know this building.
-            </p>
+            <p style={styles.sub}>Honest comments from people who know this building.</p>
           </div>
 
-          <CommentForm onSubmit={postComment} />
+          <CommentForm
+            onSubmit={postComment}
+            verificationStatus={verificationStatus}
+            onOpenVerify={() => setShowVerifyModal(true)}
+          />
 
           {loadingComments ? (
             <div style={{ textAlign: 'center', padding: 30, color: '#64748b', fontSize: 13 }}>Loading comments...</div>
@@ -103,6 +112,14 @@ export default function ListingDetail() {
           )}
         </div>
       </div>
+
+      {showVerifyModal && (
+        <VerifyTenantModal
+          listing={listing}
+          onClose={() => setShowVerifyModal(false)}
+          onSubmit={submitVerification}
+        />
+      )}
     </div>
   )
 }
