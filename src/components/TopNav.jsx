@@ -24,13 +24,17 @@ export default function TopNav() {
 
         <div style={styles.right}>
           {profile && (
-            <div style={styles.userBadge}>
-              <div style={styles.avatar}>{profile.name?.[0]?.toUpperCase() || '?'}</div>
+            <Link to={`/profile/${profile.id}`} style={styles.userBadge}>
+              {profile.photo_url ? (
+                <img src={profile.photo_url} alt={profile.name} style={styles.avatarImg}/>
+              ) : (
+                <div style={styles.avatar}>{profile.name?.[0]?.toUpperCase() || '?'}</div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{profile.name?.split(' ')[0]}</span>
                 <span style={{ fontSize: 10, color: '#64748b', textTransform: 'capitalize' }}>{profile.account_type}</span>
               </div>
-            </div>
+            </Link>
           )}
           <button onClick={signOut} style={styles.signOut}>Sign out</button>
         </div>
@@ -68,7 +72,7 @@ const styles = {
   },
   active: { background: '#e8f0fe', color: '#1a6cf5' },
   right: { display: 'flex', alignItems: 'center', gap: 12 },
-  userBadge: { display: 'flex', alignItems: 'center', gap: 8 },
+  userBadge: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', borderRadius: 100, textDecoration: 'none' },
   avatar: {
     width: 32,
     height: 32,
@@ -80,7 +84,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
+  avatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   signOut: {
     padding: '7px 14px',
     background: '#f1f5f9',
