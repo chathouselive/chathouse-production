@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
+import { uploadProfilePhoto, updateMyProfile } from '../lib/useProfile'
 
 const ACCOUNT_TYPES = [
   { value: 'buyer', label: '🏘️ Resident, Buyer or Renter', sub: 'Free forever. Search, comment, connect.' },
@@ -11,7 +12,7 @@ const ACCOUNT_TYPES = [
 ]
 
 export default function SignUp() {
-  const { signUp } = useAuth()
+  const { signUp, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [accountType, setAccountType] = useState('buyer')
@@ -19,18 +20,46 @@ export default function SignUp() {
   const [email, setEmail] = useState('')
   const [city, setCity] = useState('New York, NY')
   const [password, setPassword] = useState('')
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e) {
+  function handlePhotoChange(e) {
+    const f = e.target.files[0]
+    if (!f) return
+    setPhotoFile(f)
+    setPhotoPreview(URL.createObjectURL(f))
+  }
+
+  async function handleCredentialsSubmit(e) {
     e.preventDefault()
     if (password.length < 6) return setError('Password must be at least 6 characters.')
     setError('')
+    setStep(3) // Move to photo step
+  }
+
+  async function handleFinalSubmit(skipPhoto) {
+    setError('')
     setLoading(true)
-    const { error } = await signUp({ email, password, name, accountType, city })
-    setLoading(false)
-    if (error) setError(error.message)
-    else navigate('/')
+    try {
+      const { data, error } = await signUp({ email, password, name, accountType, city })
+      if (error) throw new Error(error.message)
+
+      // Upload photo if provided
+      if (!skipPhoto && photoFile && data?.user?.id) {
+        const { url, error: upErr } = await uploadProfilePhoto(photoFile, data.user.id)
+        if (!upErr && url) {
+          await updateMyProfile({ photo_url: url })
+          await refreshProfile()
+        }
+      }
+
+      navigate('/')
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+    }
   }
 
   return (
@@ -71,7 +100,7 @@ export default function SignUp() {
             <h1 style={styles.heading}>Create your account</h1>
             <p style={styles.sub}>{ACCOUNT_TYPES.find(t => t.value === accountType)?.label}</p>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={handleCredentialsSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={styles.label}>Full name</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)} required style={styles.input} placeholder="Jane Smith" />
@@ -89,8 +118,11 @@ export default function SignUp() {
                 <select value={city} onChange={e => setCity(e.target.value)} style={{ ...styles.input, background: '#fff' }}>
                   <option>New York, NY</option>
                   <option>Brooklyn, NY</option>
-                  <option>Austin, TX</option>
-                  <option>Atlanta, GA</option>
+                  <option>Jersey City, NJ</option>
+                  <option>Hoboken, NJ</option>
+                  <option>Newark, NJ</option>
+                  <option>Hackensack, NJ</option>
+                  <option>Weehawken, NJ</option>
                   <option>Other</option>
                 </select>
               </div>
@@ -99,11 +131,44 @@ export default function SignUp() {
 
               <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                 <button type="button" onClick={() => setStep(1)} style={styles.buttonSecondary}>← Back</button>
-                <button type="submit" disabled={loading} style={{ ...styles.button, flex: 1, opacity: loading ? 0.6 : 1 }}>
-                  {loading ? 'Creating account...' : 'Create account →'}
-                </button>
+                <button type="submit" style={{ ...styles.button, flex: 1 }}>Continue →</button>
               </div>
             </form>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <h1 style={styles.heading}>Add a profile photo?</h1>
+            <p style={styles.sub}>Optional — but it helps the community recognize you on comments.</p>
+
+            <div style={styles.photoRow}>
+              <div style={styles.photoPreview}>
+                {photoPreview ? (
+                  <img src={photoPreview} alt="preview" style={styles.photoImg}/>
+                ) : (
+                  <div style={styles.photoInitial}>{name[0]?.toUpperCase() || '?'}</div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <input id="photoFile" type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }}/>
+                <label htmlFor="photoFile" style={styles.fileBtn}>
+                  📷 {photoFile ? 'Change photo' : 'Choose photo'}
+                </label>
+                <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Under 5MB. Can add later from your profile.</p>
+              </div>
+            </div>
+
+            {error && <div style={styles.error}>{error}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button type="button" onClick={() => handleFinalSubmit(true)} disabled={loading} style={{ ...styles.buttonSecondary, opacity: loading ? 0.5 : 1 }}>
+                Skip for now
+              </button>
+              <button type="button" onClick={() => handleFinalSubmit(false)} disabled={loading || !photoFile} style={{ ...styles.button, flex: 1, opacity: loading || !photoFile ? 0.5 : 1 }}>
+                {loading ? 'Creating account...' : 'Create account →'}
+              </button>
+            </div>
           </>
         )}
 
@@ -155,6 +220,7 @@ const styles = {
     borderRadius: 10,
     fontSize: 15,
     fontWeight: 600,
+    cursor: 'pointer',
   },
   buttonSecondary: {
     padding: '13px 18px',
@@ -164,6 +230,7 @@ const styles = {
     borderRadius: 10,
     fontSize: 14,
     fontWeight: 600,
+    cursor: 'pointer',
   },
   error: {
     padding: '10px 14px',
@@ -174,4 +241,18 @@ const styles = {
     fontSize: 13,
   },
   footer: { fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 24 },
+  photoRow: { display: 'flex', alignItems: 'center', gap: 16 },
+  photoPreview: { width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 },
+  photoImg: { width: '100%', height: '100%', objectFit: 'cover' },
+  photoInitial: {
+    width: '100%', height: '100%',
+    background: 'linear-gradient(135deg, #1a6cf5, #f97316)',
+    color: '#fff', fontSize: 30, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  fileBtn: {
+    display: 'inline-block', padding: '8px 14px',
+    border: '1.5px solid #e2e8f0', borderRadius: 8,
+    fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', background: '#fff',
+  },
 }
