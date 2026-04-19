@@ -118,7 +118,7 @@ export default function SignUp() {
         }
       }
 
-      navigate('/')
+      setStep(4) // show check-your-email confirmation
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -299,6 +299,36 @@ export default function SignUp() {
           </>
         )}
 
+        {step === 4 && (
+          <>
+            <div style={styles.checkmarkWrap}>
+              <div style={styles.checkmark}>📬</div>
+            </div>
+            <h1 style={{ ...styles.heading, textAlign: 'center' }}>Check your email</h1>
+            <p style={{ ...styles.sub, textAlign: 'center', marginBottom: 20 }}>
+              We sent a confirmation link to <strong style={{ color: '#0f172a' }}>{email}</strong>.
+              Click the link in the email to verify your account, then sign in.
+            </p>
+
+            <div style={styles.emailBox}>
+              <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
+                ✓ Open your email inbox<br/>
+                ✓ Look for a message from Chathouse (check spam if you don't see it)<br/>
+                ✓ Click the confirmation link<br/>
+                ✓ Return here and sign in
+              </div>
+            </div>
+
+            <Link to="/signin" style={{ ...styles.button, textAlign: 'center', marginTop: 20, display: 'block', textDecoration: 'none' }}>
+              Go to Sign In →
+            </Link>
+
+            <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', marginTop: 14 }}>
+              Didn't get the email? Check spam, or try signing up again in a few minutes.
+            </p>
+          </>
+        )}
+
         <p style={styles.footer}>
           Already have an account? <Link to="/signin" style={{ fontWeight: 600 }}>Sign in</Link>
         </p>
@@ -388,5 +418,18 @@ const styles = {
     padding: 10, background: '#fef3c7',
     border: '1px solid #fcd34d', borderRadius: 8,
     fontSize: 11, color: '#92400e', lineHeight: 1.5,
+  },
+  checkmarkWrap: { display: 'flex', justifyContent: 'center', marginBottom: 18 },
+  checkmark: {
+    width: 80, height: 80, borderRadius: '50%',
+    background: 'linear-gradient(135deg, #e8f0fe, #dcfce7)',
+    fontSize: 40,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    border: '3px solid #fff',
+    boxShadow: '0 8px 24px rgba(26,108,245,0.15)',
+  },
+  emailBox: {
+    padding: 18, background: '#f8fafc',
+    borderRadius: 12, border: '1.5px solid #e2e8f0',
   },
 }
