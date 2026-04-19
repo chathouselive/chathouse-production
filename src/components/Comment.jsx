@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -38,6 +39,7 @@ export default function Comment({ comment, onLike }) {
   const roleStyle = ROLE_STYLES[comment.role_label] || ROLE_STYLES['Local']
 
   const canAdmin = currentUserProfile?.is_admin
+  const clickable = !comment.is_anonymous && profile.id
 
   async function handleDelete() {
     if (!window.confirm('Delete this comment permanently?')) return
@@ -47,17 +49,30 @@ export default function Comment({ comment, onLike }) {
       setDeleting(false)
       alert('Failed to delete: ' + error.message)
     }
-    // Real-time subscription will remove it from the list
   }
 
   if (comment.is_hidden) return null
 
   return (
     <div style={styles.comment}>
-      <div style={styles.avatar}>{initial}</div>
+      {clickable ? (
+        <Link to={`/profile/${profile.id}`} style={styles.avatarLink}>
+          {profile.photo_url ? (
+            <img src={profile.photo_url} alt={displayName} style={styles.avatarImg}/>
+          ) : (
+            <div style={styles.avatar}>{initial}</div>
+          )}
+        </Link>
+      ) : (
+        <div style={styles.avatar}>{initial}</div>
+      )}
       <div style={styles.body}>
         <div style={styles.head}>
-          <span style={styles.name}>{displayName}</span>
+          {clickable ? (
+            <Link to={`/profile/${profile.id}`} style={styles.nameLink}>{displayName}</Link>
+          ) : (
+            <span style={styles.name}>{displayName}</span>
+          )}
           {comment.role_label && (
             <span style={{ ...styles.role, background: roleStyle.bg, color: roleStyle.color }}>
               {roleStyle.icon} {comment.role_label}
@@ -84,15 +99,18 @@ export default function Comment({ comment, onLike }) {
 
 const styles = {
   comment: { display: 'flex', gap: 12, padding: '16px 0', borderBottom: '1px solid #f1f5f9' },
+  avatarLink: { textDecoration: 'none', flexShrink: 0 },
   avatar: {
     width: 40, height: 40, borderRadius: '50%',
     background: 'linear-gradient(135deg, #1a6cf5, #f97316)',
     color: '#fff', fontSize: 15, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
+  avatarImg: { width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, display: 'block' },
   body: { flex: 1, minWidth: 0 },
   head: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 },
   name: { fontSize: 13, fontWeight: 700, color: '#0f172a' },
+  nameLink: { fontSize: 13, fontWeight: 700, color: '#0f172a', textDecoration: 'none' },
   role: { fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 },
   adminBadge: { fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: '#0f172a', color: '#fff', letterSpacing: 0.5 },
   time: { fontSize: 11, color: '#94a3b8' },
