@@ -211,22 +211,8 @@ export function useAdminListings({ source = 'all', search = '' } = {}) {
 
 // ─── Manual sync trigger ───
 export async function triggerRentcastSync(city = null) {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return { error: 'Not authenticated' }
-
   const body = city ? { city } : {}
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-rentcast`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    }
-  )
-
-  if (!response.ok) return { error: `Sync failed (${response.status})` }
-  return { data: await response.json() }
+  const { data, error } = await supabase.functions.invoke('sync-rentcast', { body })
+  if (error) return { error: error.message || 'Sync failed' }
+  return { data }
 }
