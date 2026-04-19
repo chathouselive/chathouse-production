@@ -5,6 +5,8 @@ import SignUp from './pages/SignUp'
 import Home from './pages/Home'
 import ListingDetail from './pages/ListingDetail'
 import AddListing from './pages/AddListing'
+import Profile from './pages/Profile'
+import ProfileEdit from './pages/ProfileEdit'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminPhotos from './pages/admin/AdminPhotos'
@@ -58,6 +60,8 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/listing/:id" element={<ProtectedRoute><ListingDetail /></ProtectedRoute>} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
+      <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+      <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminOverview /></ProtectedRoute>} />
       <Route path="/admin/verifications" element={<ProtectedRoute><AdminVerifications /></ProtectedRoute>} />
       <Route path="/admin/photos" element={<ProtectedRoute><AdminPhotos /></ProtectedRoute>} />
