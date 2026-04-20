@@ -1,22 +1,39 @@
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 
+function ChathouseLogo({ height = 40 }) {
+  return (
+    <svg height={height} viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <g transform="translate(24, 16) scale(0.84)">
+        <polygon points="54,0 108,46 96,46 96,108 12,108 12,46 0,46" fill="#1A6FE8"/>
+        <rect x="38" y="72" width="32" height="36" rx="4" fill="white"/>
+        <rect x="58" y="18" width="36" height="28" rx="7" fill="white"/>
+        <polygon points="62,46 74,46 66,54" fill="white"/>
+        <circle cx="67" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="76" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="85" cy="32" r="3" fill="#1A6FE8"/>
+      </g>
+      <text x="120" y="84" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" letterSpacing="-2">
+        <tspan fontWeight="800" fill="#0F1F3D">chat</tspan>
+        <tspan fontWeight="400" fill="#1A6FE8" letterSpacing="-2">house</tspan>
+      </text>
+      <text x="120" y="112" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
+    </svg>
+  )
+}
+
 export default function FairHousing() {
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
-
-      {/* Top bar */}
       <header style={styles.topbar}>
         <div style={styles.topbarInner}>
           <Link to="/" style={styles.logo}>
-            <span style={{ fontSize: 22 }}>🏠</span>
-            <span style={{ fontFamily: 'var(--serif)', fontWeight: 800, fontSize: 20 }}>Chathouse</span>
+            <ChathouseLogo height={40} />
           </Link>
           <Link to="/" style={styles.backLink}>← Back to home</Link>
         </div>
       </header>
 
-      {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
           <span style={styles.eyebrow}>Fair Housing</span>
@@ -25,11 +42,9 @@ export default function FairHousing() {
         </div>
       </section>
 
-      {/* Main content */}
       <main style={styles.main}>
         <div style={styles.content}>
 
-          {/* Equal Housing Opportunity badge */}
           <div style={styles.ehoCard}>
             <div style={styles.ehoIcon}>⚖️</div>
             <div>
@@ -102,27 +117,14 @@ export default function FairHousing() {
 
           <Section title="Resources">
             <div style={styles.resourceGrid}>
-              <ResourceCard
-                title="HUD Fair Housing"
-                desc="Official U.S. Department of Housing and Urban Development fair housing resources and complaint portal."
-                href="https://www.hud.gov/fairhousing"
-              />
-              <ResourceCard
-                title="NJ Division on Civil Rights"
-                desc="New Jersey's state agency handling fair housing complaints and enforcement."
-                href="https://www.njoag.gov/about/divisions-and-offices/division-on-civil-rights-home/"
-              />
-              <ResourceCard
-                title="National Fair Housing Alliance"
-                desc="Consortium of more than 200 private, non-profit fair housing organizations."
-                href="https://nationalfairhousing.org"
-              />
+              <ResourceCard title="HUD Fair Housing" desc="Official U.S. Department of Housing and Urban Development fair housing resources and complaint portal." href="https://www.hud.gov/fairhousing"/>
+              <ResourceCard title="NJ Division on Civil Rights" desc="New Jersey's state agency handling fair housing complaints and enforcement." href="https://www.njoag.gov/about/divisions-and-offices/division-on-civil-rights-home/"/>
+              <ResourceCard title="National Fair Housing Alliance" desc="Consortium of more than 200 private, non-profit fair housing organizations." href="https://nationalfairhousing.org"/>
             </div>
           </Section>
 
         </div>
       </main>
-
       <Footer />
     </div>
   )
@@ -136,120 +138,43 @@ function ResourceCard({ title, desc, href }) {
     </a>
   )
 }
-
 function Section({ title, children }) {
-  return (
-    <section style={{ marginBottom: 40 }}>
-      <h2 style={styles.sectionTitle}>{title}</h2>
-      {children}
-    </section>
-  )
+  return <section style={{ marginBottom: 40 }}><h2 style={styles.sectionTitle}>{title}</h2>{children}</section>
 }
-
 function P({ children }) {
   return <p style={styles.p}>{children}</p>
 }
-
 function Li({ children }) {
   return <li style={styles.li}>{children}</li>
 }
 
 const styles = {
-  topbar: {
-    background: '#fff',
-    borderBottom: '1px solid #e2e8f0',
-    position: 'sticky', top: 0, zIndex: 40,
-  },
-  topbarInner: {
-    maxWidth: 1100, margin: '0 auto',
-    padding: '14px 20px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  },
-  logo: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    textDecoration: 'none', color: '#0f172a',
-  },
-  backLink: {
-    fontSize: 13, color: '#64748b',
-    textDecoration: 'none', fontWeight: 600,
-  },
-  hero: {
-    background: 'linear-gradient(135deg, #e8f0fe 0%, #fff 60%)',
-    padding: '60px 20px 48px',
-    textAlign: 'center',
-  },
+  topbar: { background: '#fff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 },
+  topbarInner: { maxWidth: 1100, margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  logo: { display: 'flex', alignItems: 'center', textDecoration: 'none' },
+  backLink: { fontSize: 13, color: '#64748b', textDecoration: 'none', fontWeight: 600 },
+  hero: { background: 'linear-gradient(135deg, #e8f0fe 0%, #fff 60%)', padding: '60px 20px 48px', textAlign: 'center' },
   heroInner: { maxWidth: 700, margin: '0 auto' },
-  eyebrow: {
-    display: 'inline-block', padding: '4px 12px',
-    background: 'rgba(26,108,245,0.1)', color: '#1a6cf5',
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: 1, borderRadius: 100, marginBottom: 16,
-  },
-  title: {
-    fontFamily: 'var(--serif)', fontSize: 44, fontWeight: 800,
-    color: '#0f172a', marginBottom: 10, lineHeight: 1.1,
-  },
+  eyebrow: { display: 'inline-block', padding: '4px 12px', background: 'rgba(26,108,245,0.1)', color: '#1a6cf5', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, borderRadius: 100, marginBottom: 16 },
+  title: { fontFamily: 'var(--serif)', fontSize: 44, fontWeight: 800, color: '#0f172a', marginBottom: 10, lineHeight: 1.1 },
   sub: { fontSize: 15, color: '#64748b', lineHeight: 1.6, maxWidth: 560, margin: '0 auto' },
   main: { padding: '56px 20px 80px' },
   content: { maxWidth: 720, margin: '0 auto' },
-
-  ehoCard: {
-    display: 'flex', gap: 20, alignItems: 'flex-start',
-    background: 'linear-gradient(135deg, #e8f0fe, #fff3e8)',
-    border: '1.5px solid #bfdbfe',
-    borderRadius: 16, padding: '24px 28px', marginBottom: 48,
-  },
+  ehoCard: { display: 'flex', gap: 20, alignItems: 'flex-start', background: 'linear-gradient(135deg, #e8f0fe, #fff3e8)', border: '1.5px solid #bfdbfe', borderRadius: 16, padding: '24px 28px', marginBottom: 48 },
   ehoIcon: { fontSize: 36, flexShrink: 0 },
-  ehoTitle: {
-    fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 700,
-    color: '#0f172a', marginBottom: 8,
-  },
-  ehoText: {
-    fontSize: 14, color: '#475569', lineHeight: 1.7,
-  },
-
-  sectionTitle: {
-    fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700,
-    color: '#0f172a', marginBottom: 12, marginTop: 0,
-    paddingBottom: 10, borderBottom: '1.5px solid #e2e8f0',
-  },
-  p: {
-    fontSize: 15, color: '#475569', lineHeight: 1.75,
-    marginBottom: 14, marginTop: 0,
-  },
+  ehoTitle: { fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 },
+  ehoText: { fontSize: 14, color: '#475569', lineHeight: 1.7 },
+  sectionTitle: { fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12, marginTop: 0, paddingBottom: 10, borderBottom: '1.5px solid #e2e8f0' },
+  p: { fontSize: 15, color: '#475569', lineHeight: 1.75, marginBottom: 14, marginTop: 0 },
   list: { paddingLeft: 20, marginBottom: 14, marginTop: 0 },
-  li: {
-    fontSize: 15, color: '#475569', lineHeight: 1.75, marginBottom: 8,
-  },
+  li: { fontSize: 15, color: '#475569', lineHeight: 1.75, marginBottom: 8 },
   link: { color: '#1a6cf5', textDecoration: 'none', fontWeight: 600 },
-
-  classGrid: {
-    display: 'flex', flexWrap: 'wrap', gap: 10,
-    marginBottom: 20,
-  },
-  classCard: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    background: '#f8fafc', border: '1.5px solid #e2e8f0',
-    borderRadius: 10, padding: '8px 16px',
-  },
+  classGrid: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  classCard: { display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 16px' },
   classIcon: { fontSize: 18 },
   classLabel: { fontSize: 13, fontWeight: 700, color: '#334155' },
-
-  resourceGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: 16, marginTop: 8,
-  },
-  resourceCard: {
-    display: 'block', textDecoration: 'none',
-    background: '#f8fafc', border: '1.5px solid #e2e8f0',
-    borderRadius: 12, padding: '18px 20px',
-  },
-  resourceTitle: {
-    fontSize: 14, fontWeight: 700, color: '#1a6cf5',
-    marginBottom: 6,
-  },
-  resourceDesc: {
-    fontSize: 12, color: '#64748b', lineHeight: 1.6,
-  },
+  resourceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 8 },
+  resourceCard: { display: 'block', textDecoration: 'none', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '18px 20px' },
+  resourceTitle: { fontSize: 14, fontWeight: 700, color: '#1a6cf5', marginBottom: 6 },
+  resourceDesc: { fontSize: 12, color: '#64748b', lineHeight: 1.6 },
 }
