@@ -13,6 +13,9 @@ import AdminPhotos from './pages/admin/AdminPhotos'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminListings from './pages/admin/AdminListings'
 import AdminSync from './pages/admin/AdminSync'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
+import FairHousing from './pages/FairHousing'
 
 function LoadingScreen() {
   return (
@@ -68,6 +71,9 @@ export default function App() {
       <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
       <Route path="/admin/listings" element={<ProtectedRoute><AdminListings /></ProtectedRoute>} />
       <Route path="/admin/sync" element={<ProtectedRoute><AdminSync /></ProtectedRoute>} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/fair-housing" element={<FairHousing />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
