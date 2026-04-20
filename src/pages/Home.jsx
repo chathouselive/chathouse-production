@@ -1,7 +1,8 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import TopNav from '../components/TopNav'
 import ListingCard from '../components/ListingCard'
+import Footer from '../components/Footer'
 import { useListings } from '../lib/useListings'
 
 const CITIES = ['All', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Jersey City', 'Hoboken', 'Newark', 'Weehawken', 'Hackensack']
@@ -34,26 +35,16 @@ export default function Home() {
               style={styles.searchInput}
             />
           </div>
-
           <div style={styles.chipGroup}>
             {TYPES.map(t => (
-              <button
-                key={t.value}
-                onClick={() => setType(t.value)}
-                style={{ ...styles.chip, ...(type === t.value ? styles.chipActive : {}) }}
-              >
+              <button key={t.value} onClick={() => setType(t.value)} style={{ ...styles.chip, ...(type === t.value ? styles.chipActive : {}) }}>
                 {t.label}
               </button>
             ))}
           </div>
-
           <div style={styles.chipGroup}>
             {CITIES.map(c => (
-              <button
-                key={c}
-                onClick={() => setCity(c)}
-                style={{ ...styles.chip, ...(city === c ? styles.chipActive : {}) }}
-              >
+              <button key={c} onClick={() => setCity(c)} style={{ ...styles.chip, ...(city === c ? styles.chipActive : {}) }}>
                 {c}
               </button>
             ))}
@@ -72,9 +63,7 @@ export default function Home() {
               {type !== 'All' && ` · ${type === 'rent' ? 'Rentals' : 'For Sale'}`}
             </p>
           </div>
-          <Link to="/add-listing" style={styles.addBtn}>
-            + Add building
-          </Link>
+          <Link to="/add-listing" style={styles.addBtn}>+ Add building</Link>
         </div>
 
         {loading && (
@@ -93,9 +82,7 @@ export default function Home() {
             <p style={{ color: '#64748b', maxWidth: 420, margin: '0 auto 16px', lineHeight: 1.55, fontSize: 14 }}>
               Chathouse is built by the community. Add this building so you and others can leave honest comments about it.
             </p>
-            <Link to="/add-listing" style={styles.ctaBtn}>
-              Add this building to Chathouse →
-            </Link>
+            <Link to="/add-listing" style={styles.ctaBtn}>Add this building to Chathouse →</Link>
           </div>
         )}
 
@@ -115,50 +102,30 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   )
 }
 
 const styles = {
   filters: { background: '#fff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 57, zIndex: 40 },
-  filtersInner: {
-    maxWidth: 1160, margin: '0 auto', padding: '14px 20px',
-    display: 'flex', flexDirection: 'column', gap: 10,
-  },
+  filtersInner: { maxWidth: 1160, margin: '0 auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 10 },
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#94a3b8' },
-  searchInput: {
-    width: '100%', padding: '10px 14px 10px 40px',
-    border: '1.5px solid #e2e8f0', borderRadius: 10,
-    fontSize: 14, outline: 'none', background: '#f8fafc', color: '#0f172a',
-  },
+  searchInput: { width: '100%', padding: '10px 14px 10px 40px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none', background: '#f8fafc', color: '#0f172a' },
   chipGroup: { display: 'flex', gap: 6, flexWrap: 'wrap' },
-  chip: {
-    padding: '6px 14px', border: '1.5px solid #e2e8f0', borderRadius: 100,
-    background: '#fff', fontSize: 12, fontWeight: 600, color: '#64748b',
-    cursor: 'pointer', whiteSpace: 'nowrap',
-  },
+  chip: { padding: '6px 14px', border: '1.5px solid #e2e8f0', borderRadius: 100, background: '#fff', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer', whiteSpace: 'nowrap' },
   chipActive: { background: '#1a6cf5', color: '#fff', borderColor: '#1a6cf5' },
   main: { maxWidth: 1160, margin: '0 auto', padding: '28px 20px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
   heading: { fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 700, color: '#0f172a' },
   sub: { fontSize: 14, color: '#64748b', marginTop: 2 },
-  addBtn: {
-    padding: '10px 16px', background: '#7c3aed', color: '#fff',
-    borderRadius: 10, fontSize: 13, fontWeight: 700,
-    textDecoration: 'none', whiteSpace: 'nowrap',
-  },
+  addBtn: { padding: '10px 16px', background: '#7c3aed', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
   center: { display: 'flex', justifyContent: 'center', padding: 60 },
   spinner: { width: 36, height: 36, borderRadius: '50%', border: '3px solid #e8f0fe', borderTop: '3px solid #1a6cf5', animation: 'spin 0.8s linear infinite' },
   empty: { textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 16, border: '1.5px solid #e2e8f0' },
-  ctaBanner: {
-    textAlign: 'center', padding: '40px 20px',
-    background: 'linear-gradient(135deg, #f3e8ff, #fff)',
-    borderRadius: 16, border: '1.5px solid rgba(124,58,237,0.2)',
-  },
-  ctaBtn: {
-    display: 'inline-block', padding: '12px 22px', background: '#7c3aed', color: '#fff',
-    borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none',
-  },
+  ctaBanner: { textAlign: 'center', padding: '40px 20px', background: 'linear-gradient(135deg, #f3e8ff, #fff)', borderRadius: 16, border: '1.5px solid rgba(124,58,237,0.2)' },
+  ctaBtn: { display: 'inline-block', padding: '12px 22px', background: '#7c3aed', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' },
 }
