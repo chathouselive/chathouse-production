@@ -325,7 +325,6 @@ export default function SignUp() {
             Already have an account? <Link to="/signin" style={{ fontWeight: 600, color: '#1a6cf5' }}>Sign in</Link>
           </p>
 
-          {/* Testimonial quote */}
           <div style={styles.quoteBox}>
             <div style={styles.quoteIcon}>"</div>
             <p style={styles.quoteText}>I almost signed on a place with mold issues. Chathouse saved me.</p>
@@ -341,34 +340,26 @@ export default function SignUp() {
         </div>
       </div>
 
-      {/* Right panel — diagonal split illustration */}
+      {/* Right panel — diagonal split */}
       <div style={styles.rightPanel}>
-
-        {/* Top half: apartment building at night */}
         <div style={styles.topHalf}>
           <div style={styles.topOverlay}/>
           <div style={styles.topContent}>
             <span style={styles.pill}>FOR RENTERS</span>
           </div>
         </div>
-
-        {/* Bottom half: suburban home */}
         <div style={styles.bottomHalf}>
           <div style={styles.bottomOverlay}/>
           <div style={styles.bottomContent}>
             <span style={styles.pill}>FOR BUYERS</span>
           </div>
         </div>
-
-        {/* Diagonal divider */}
         <div style={styles.diagonalWrap}>
           <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <line x1="0" y1="45%" x2="100%" y2="55%" stroke="white" strokeWidth="2.5" opacity="0.9"/>
-            <line x1="0" y1="calc(45% + 2px)" x2="100%" y2="calc(55% + 2px)" stroke="#1a6cf5" strokeWidth="1" opacity="0.8"/>
+            <line x1="0" y1="48%" x2="100%" y2="52%" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+            <line x1="0" y1="49%" x2="100%" y2="53%" stroke="#1a6cf5" strokeWidth="1" opacity="0.8"/>
           </svg>
         </div>
-
-        {/* Center tagline */}
         <div style={styles.taglineWrap}>
           <span style={styles.tagline}>YOUR HOME STORY STARTS HERE</span>
         </div>
@@ -396,8 +387,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'row',
   },
-
-  // Left form panel
   formPanel: {
     width: '50%',
     minHeight: '100vh',
@@ -497,34 +486,33 @@ const styles = {
   emailBox: {
     padding: 18, background: '#f8fafc', borderRadius: 12, border: '1.5px solid #e2e8f0',
   },
-
-  // Right photo panel
   rightPanel: {
     width: '50%',
     minHeight: '100vh',
     position: 'relative',
     overflow: 'hidden',
+    background: '#0f172a',
   },
   topHalf: {
     position: 'absolute',
     top: 0, left: 0, right: 0,
-    height: '52%',
+    height: '55%',
     backgroundImage: 'url(https://images.unsplash.com/photo-1486325212027-8081e485255e?w=900&q=85)',
     backgroundSize: 'cover',
     backgroundPosition: 'center top',
-    clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 88%)',
+    clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)',
   },
   topOverlay: {
     position: 'absolute', inset: 0,
-    background: 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, rgba(15,23,42,0.55) 100%)',
+    background: 'linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.5) 100%)',
   },
   topContent: {
-    position: 'absolute', bottom: 48, left: 32,
+    position: 'absolute', bottom: 60, left: 32,
   },
   bottomHalf: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    height: '52%',
+    height: '55%',
     backgroundImage: 'url(https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=900&q=85)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
@@ -533,7 +521,7 @@ const styles = {
   },
   bottomOverlay: {
     position: 'absolute', inset: 0,
-    background: 'linear-gradient(180deg, rgba(15,23,42,0.3) 0%, rgba(15,23,42,0.5) 100%)',
+    background: 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, rgba(15,23,42,0.5) 100%)',
   },
   bottomContent: {
     position: 'absolute', bottom: 40, left: 32, zIndex: 2,
@@ -542,6 +530,7 @@ const styles = {
     display: 'inline-block',
     padding: '6px 16px',
     background: 'rgba(15,23,42,0.7)',
+    border: '1px solid rgba(255,255,255,0.2)',
     borderRadius: 100,
     color: '#fff',
     fontSize: 11,
@@ -559,10 +548,11 @@ const styles = {
     zIndex: 3,
     textAlign: 'center',
     pointerEvents: 'none',
-    background: 'rgba(15,23,42,0.55)',
-    padding: '10px 20px',
+    background: 'rgba(15,23,42,0.65)',
+    padding: '10px 24px',
     borderRadius: 100,
     whiteSpace: 'nowrap',
+    border: '1px solid rgba(255,255,255,0.15)',
   },
   tagline: {
     fontSize: 11,
@@ -571,3 +561,4 @@ const styles = {
     letterSpacing: 2.5,
     textTransform: 'uppercase',
   },
+}
