@@ -30,7 +30,7 @@ export default function Footer() {
         <div style={styles.topRow}>
           <div style={styles.brand}>
             <div style={styles.logoWrap}>
-              <ChatouseLogo height={32} />
+              <ChathouseLogo height={32} />
             </div>
             <p style={styles.tagline}>
               Community-sourced transparency for every address — before you sign.
