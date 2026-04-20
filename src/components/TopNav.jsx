@@ -23,7 +23,7 @@ function ChathouseLogo({ height = 32 }) {
 }
 
 export default function TopNav() {
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const loc = useLocation()
 
   return (
@@ -43,20 +43,29 @@ export default function TopNav() {
         </div>
 
         <div style={styles.right}>
-          {profile && (
-            <Link to={`/profile/${profile.id}`} style={styles.userBadge}>
-              {profile.photo_url ? (
-                <img src={profile.photo_url} alt={profile.name} style={styles.avatarImg}/>
-              ) : (
-                <div style={styles.avatar}>{profile.name?.[0]?.toUpperCase() || '?'}</div>
+          {user ? (
+            <>
+              {profile && (
+                <Link to={`/profile/${profile.id}`} style={styles.userBadge}>
+                  {profile.photo_url ? (
+                    <img src={profile.photo_url} alt={profile.name} style={styles.avatarImg}/>
+                  ) : (
+                    <div style={styles.avatar}>{profile.name?.[0]?.toUpperCase() || '?'}</div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{profile.name?.split(' ')[0]}</span>
+                    <span style={{ fontSize: 10, color: '#64748b', textTransform: 'capitalize' }}>{profile.account_type}</span>
+                  </div>
+                </Link>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{profile.name?.split(' ')[0]}</span>
-                <span style={{ fontSize: 10, color: '#64748b', textTransform: 'capitalize' }}>{profile.account_type}</span>
-              </div>
-            </Link>
+              <button onClick={signOut} style={styles.signOut}>Sign out</button>
+            </>
+          ) : (
+            <>
+              <Link to="/signin" style={styles.signIn}>Sign in</Link>
+              <Link to="/signup" style={styles.signUp}>Sign up →</Link>
+            </>
           )}
-          <button onClick={signOut} style={styles.signOut}>Sign out</button>
         </div>
       </div>
     </nav>
@@ -116,5 +125,25 @@ const styles = {
     fontWeight: 600,
     color: '#475569',
     cursor: 'pointer',
+  },
+  signIn: {
+    padding: '8px 16px',
+    background: '#f1f5f9',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#475569',
+    textDecoration: 'none',
+    cursor: 'pointer',
+  },
+  signUp: {
+    padding: '8px 16px',
+    background: '#1a6cf5',
+    color: '#fff',
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 700,
+    textDecoration: 'none',
   },
 }
