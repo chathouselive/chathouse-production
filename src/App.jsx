@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
-import SignIn from './pages/SignIn'
+import LandingPage from './pages/LandingPage'
+import DedicatedSignIn from './pages/DedicatedSignIn'
 import SignUp from './pages/SignUp'
 import Home from './pages/Home'
 import ListingDetail from './pages/ListingDetail'
@@ -48,19 +49,13 @@ function ProtectedRoute({ children }) {
   return children
 }
 
-function PublicRoute({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
-  if (user) return <Navigate to="/" replace />
-  return children
-}
-
 export default function App() {
   return (
     <Routes>
-      <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/signin" element={<DedicatedSignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/listings" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/listing/:id" element={<ListingDetail />} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
