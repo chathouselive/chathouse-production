@@ -1,6 +1,27 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 
+function ChathouseLogo({ height = 32 }) {
+  return (
+    <svg height={height} viewBox="0 0 600 140" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <g transform="translate(24, 16) scale(0.84)">
+        <polygon points="54,0 108,46 96,46 96,108 12,108 12,46 0,46" fill="#1A6FE8"/>
+        <rect x="38" y="72" width="32" height="36" rx="4" fill="white"/>
+        <rect x="58" y="18" width="36" height="28" rx="7" fill="white"/>
+        <polygon points="62,46 74,46 66,54" fill="white"/>
+        <circle cx="67" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="76" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="85" cy="32" r="3" fill="#1A6FE8"/>
+      </g>
+      <text x="120" y="84" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" letterSpacing="-2">
+        <tspan fontWeight="800" fill="#0F1F3D">chat</tspan>
+        <tspan fontWeight="400" fill="#1A6FE8" letterSpacing="-2">house</tspan>
+      </text>
+      <text x="120" y="112" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
+    </svg>
+  )
+}
+
 export default function TopNav() {
   const { profile, signOut } = useAuth()
   const loc = useLocation()
@@ -9,8 +30,7 @@ export default function TopNav() {
     <nav style={styles.nav}>
       <div style={styles.inner}>
         <Link to="/" style={styles.logo}>
-          <span style={{ fontSize: 24 }}>🏠</span>
-          <span style={{ fontFamily: 'var(--serif)', fontWeight: 800, fontSize: 22, color: '#0f172a' }}>Chathouse</span>
+          <ChathouseLogo height={36} />
         </Link>
 
         <div style={styles.links}>
@@ -60,7 +80,7 @@ const styles = {
     alignItems: 'center',
     gap: 24,
   },
-  logo: { display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' },
+  logo: { display: 'flex', alignItems: 'center', textDecoration: 'none' },
   links: { display: 'flex', gap: 4, flex: 1 },
   link: {
     padding: '8px 14px',
