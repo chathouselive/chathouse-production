@@ -1,22 +1,39 @@
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 
+function ChathouseLogo({ height = 40 }) {
+  return (
+    <svg height={height} viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <g transform="translate(24, 16) scale(0.84)">
+        <polygon points="54,0 108,46 96,46 96,108 12,108 12,46 0,46" fill="#1A6FE8"/>
+        <rect x="38" y="72" width="32" height="36" rx="4" fill="white"/>
+        <rect x="58" y="18" width="36" height="28" rx="7" fill="white"/>
+        <polygon points="62,46 74,46 66,54" fill="white"/>
+        <circle cx="67" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="76" cy="32" r="3" fill="#1A6FE8"/>
+        <circle cx="85" cy="32" r="3" fill="#1A6FE8"/>
+      </g>
+      <text x="120" y="84" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" letterSpacing="-2">
+        <tspan fontWeight="800" fill="#0F1F3D">chat</tspan>
+        <tspan fontWeight="400" fill="#1A6FE8" letterSpacing="-2">house</tspan>
+      </text>
+      <text x="120" y="112" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
+    </svg>
+  )
+}
+
 export default function PrivacyPolicy() {
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
-
-      {/* Top bar */}
       <header style={styles.topbar}>
         <div style={styles.topbarInner}>
           <Link to="/" style={styles.logo}>
-            <span style={{ fontSize: 22 }}>🏠</span>
-            <span style={{ fontFamily: 'var(--serif)', fontWeight: 800, fontSize: 20 }}>Chathouse</span>
+            <ChathouseLogo height={40} />
           </Link>
           <Link to="/" style={styles.backLink}>← Back to home</Link>
         </div>
       </header>
 
-      {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
           <span style={styles.eyebrow}>Legal</span>
@@ -25,7 +42,6 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      {/* Content */}
       <main style={styles.main}>
         <div style={styles.content}>
 
@@ -138,105 +154,48 @@ export default function PrivacyPolicy() {
             <P>If you have questions about this Privacy Policy or our data practices, contact us at:</P>
             <div style={styles.contactBox}>
               <p style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>Chathouse</p>
-              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>
-                Email: <a href="mailto:privacy@chathouselive.com" style={styles.link}>privacy@chathouselive.com</a>
-              </p>
-              <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: 14 }}>
-                Website: <a href="https://chathouselive.com" style={styles.link}>chathouselive.com</a>
-              </p>
+              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Email: <a href="mailto:privacy@chathouselive.com" style={styles.link}>privacy@chathouselive.com</a></p>
+              <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: 14 }}>Website: <a href="https://chathouselive.com" style={styles.link}>chathouselive.com</a></p>
             </div>
           </Section>
 
         </div>
       </main>
-
       <Footer />
     </div>
   )
 }
 
 function Section({ title, children }) {
-  return (
-    <section style={{ marginBottom: 40 }}>
-      <h2 style={styles.sectionTitle}>{title}</h2>
-      {children}
-    </section>
-  )
+  return <section style={{ marginBottom: 40 }}><h2 style={styles.sectionTitle}>{title}</h2>{children}</section>
 }
-
 function SubTitle({ children }) {
   return <h3 style={styles.subTitle}>{children}</h3>
 }
-
 function P({ children }) {
   return <p style={styles.p}>{children}</p>
 }
-
 function Li({ children }) {
   return <li style={styles.li}>{children}</li>
 }
 
 const styles = {
-  topbar: {
-    background: '#fff',
-    borderBottom: '1px solid #e2e8f0',
-    position: 'sticky', top: 0, zIndex: 40,
-  },
-  topbarInner: {
-    maxWidth: 1100, margin: '0 auto',
-    padding: '14px 20px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  },
-  logo: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    textDecoration: 'none', color: '#0f172a',
-  },
-  backLink: {
-    fontSize: 13, color: '#64748b',
-    textDecoration: 'none', fontWeight: 600,
-  },
-  hero: {
-    background: 'linear-gradient(135deg, #e8f0fe 0%, #fff 60%)',
-    padding: '60px 20px 48px',
-    textAlign: 'center',
-  },
+  topbar: { background: '#fff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 },
+  topbarInner: { maxWidth: 1100, margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  logo: { display: 'flex', alignItems: 'center', textDecoration: 'none' },
+  backLink: { fontSize: 13, color: '#64748b', textDecoration: 'none', fontWeight: 600 },
+  hero: { background: 'linear-gradient(135deg, #e8f0fe 0%, #fff 60%)', padding: '60px 20px 48px', textAlign: 'center' },
   heroInner: { maxWidth: 700, margin: '0 auto' },
-  eyebrow: {
-    display: 'inline-block', padding: '4px 12px',
-    background: 'rgba(26,108,245,0.1)', color: '#1a6cf5',
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: 1, borderRadius: 100, marginBottom: 16,
-  },
-  title: {
-    fontFamily: 'var(--serif)', fontSize: 44, fontWeight: 800,
-    color: '#0f172a', marginBottom: 10, lineHeight: 1.1,
-  },
+  eyebrow: { display: 'inline-block', padding: '4px 12px', background: 'rgba(26,108,245,0.1)', color: '#1a6cf5', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, borderRadius: 100, marginBottom: 16 },
+  title: { fontFamily: 'var(--serif)', fontSize: 44, fontWeight: 800, color: '#0f172a', marginBottom: 10, lineHeight: 1.1 },
   sub: { fontSize: 13, color: '#94a3b8', fontWeight: 500 },
   main: { padding: '56px 20px 80px' },
   content: { maxWidth: 720, margin: '0 auto' },
-  sectionTitle: {
-    fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700,
-    color: '#0f172a', marginBottom: 12, marginTop: 0,
-    paddingBottom: 10, borderBottom: '1.5px solid #e2e8f0',
-  },
-  subTitle: {
-    fontSize: 15, fontWeight: 700, color: '#334155',
-    marginBottom: 8, marginTop: 20,
-  },
-  p: {
-    fontSize: 15, color: '#475569', lineHeight: 1.75,
-    marginBottom: 14, marginTop: 0,
-  },
-  list: {
-    paddingLeft: 20, marginBottom: 14, marginTop: 0,
-  },
-  li: {
-    fontSize: 15, color: '#475569', lineHeight: 1.75,
-    marginBottom: 8,
-  },
+  sectionTitle: { fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12, marginTop: 0, paddingBottom: 10, borderBottom: '1.5px solid #e2e8f0' },
+  subTitle: { fontSize: 15, fontWeight: 700, color: '#334155', marginBottom: 8, marginTop: 20 },
+  p: { fontSize: 15, color: '#475569', lineHeight: 1.75, marginBottom: 14, marginTop: 0 },
+  list: { paddingLeft: 20, marginBottom: 14, marginTop: 0 },
+  li: { fontSize: 15, color: '#475569', lineHeight: 1.75, marginBottom: 8 },
   link: { color: '#1a6cf5', textDecoration: 'none', fontWeight: 600 },
-  contactBox: {
-    background: '#f8fafc', border: '1.5px solid #e2e8f0',
-    borderRadius: 12, padding: '20px 24px', marginTop: 16,
-  },
+  contactBox: { background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '20px 24px', marginTop: 16 },
 }
