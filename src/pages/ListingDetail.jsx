@@ -9,9 +9,11 @@ import { useListing } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
 import { getListingImage } from '../lib/streetView'
+import { useAuth } from '../lib/AuthContext'
 
 export default function ListingDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
   const { listing, loading } = useListing(id)
   const { comments, loading: loadingComments, postComment, toggleLike } = useComments(id)
   const { status: verificationStatus, submitVerification } = useVerification(id)
@@ -42,6 +44,13 @@ export default function ListingDetail() {
     : 'Price not listed'
   const isCommunity = listing.source === 'community'
   const isIDX = listing.source === 'idx'
+
+  // Fake blur comments for logged-out preview
+  const FAKE_COMMENTS = [
+    { id: 'f1', role: 'Past Tenant', text: 'Lived here for 2 years. The building management is incredibly responsive and...' },
+    { id: 'f2', role: 'Neighbor', text: 'Great block, very quiet at night. The only thing I would mention is that parking...' },
+    { id: 'f3', role: 'Current Resident', text: 'Moved in 6 months ago. Honestly one of the best decisions I made. The super...' },
+  ]
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
@@ -87,7 +96,6 @@ export default function ListingDetail() {
             <p style={styles.desc}>{listing.description}</p>
           )}
 
-          {/* IDX Compliance Block — required for all IDX listings */}
           {isIDX && (
             <div style={styles.idxCompliance}>
               <div style={styles.idxComplianceTop}>
@@ -99,7 +107,6 @@ export default function ListingDetail() {
                   <span style={styles.fairHousingText}>Equal Housing Opportunity</span>
                 </div>
               </div>
-
               {listing.listing_office && (
                 <div style={styles.listingOffice}>
                   <span style={styles.listingOfficeLabel}>Listing provided by: </span>
@@ -109,11 +116,9 @@ export default function ListingDetail() {
                   )}
                 </div>
               )}
-
               <p style={styles.idxDisclaimer}>
                 The data relating to real estate for sale on this website comes in part from the Internet Data Exchange (IDX) program of the New Jersey Multiple Listing Service (NJMLS). Real estate listings held by brokerage firms other than Chathouse are marked with the IDX logo and detailed information about them includes the name of the listing broker. Information is deemed reliable but is not guaranteed accurate by NJMLS or Chathouse. All information should be independently verified. © {new Date().getFullYear()} New Jersey Multiple Listing Service. All rights reserved.
               </p>
-
               <p style={styles.idxUpdated}>
                 Last updated: {listing.updated_at ? new Date(listing.updated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
               </p>
@@ -121,7 +126,7 @@ export default function ListingDetail() {
           )}
         </div>
 
-        {/* Fair Housing notice on all listings */}
+        {/* Fair Housing strip */}
         <div style={styles.fairHousingStrip}>
           <span style={styles.fairHousingStripIcon}>⚖️</span>
           <span style={styles.fairHousingStripText}>
@@ -129,30 +134,66 @@ export default function ListingDetail() {
           </span>
         </div>
 
+        {/* Community section */}
         <div style={styles.commentsSection}>
           <div style={styles.commentsHead}>
             <h2 style={styles.h2}>Community</h2>
             <p style={styles.sub}>Honest comments from people who know this building.</p>
           </div>
 
-          <CommentForm
-            onSubmit={postComment}
-            verificationStatus={verificationStatus}
-            onOpenVerify={() => setShowVerifyModal(true)}
-          />
+          {!user ? (
+            /* Logged-out gate */
+            <div style={styles.gateWrap}>
+              {/* Blurred fake comments behind the gate */}
+              <div style={styles.blurredComments}>
+                {FAKE_COMMENTS.map(c => (
+                  <div key={c.id} style={styles.fakeComment}>
+                    <div style={styles.fakeCommentHeader}>
+                      <span style={styles.fakeRoleBadge}>{c.role}</span>
+                    </div>
+                    <p style={styles.fakeCommentText}>{c.text}</p>
+                  </div>
+                ))}
+              </div>
 
-          {loadingComments ? (
-            <div style={{ textAlign: 'center', padding: 30, color: '#64748b', fontSize: 13 }}>Loading comments...</div>
-          ) : comments.length === 0 ? (
-            <div style={styles.empty}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
-              <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>Be the first to comment</div>
-              <div style={{ fontSize: 13, color: '#64748b' }}>Share what you know about this building — past tenant, current resident, or neighbor.</div>
+              {/* Gate overlay */}
+              <div style={styles.gateOverlay}>
+                <div style={styles.gateCard}>
+                  <div style={styles.gateIcon}>💬</div>
+                  <h3 style={styles.gateTitle}>Join the conversation</h3>
+                  <p style={styles.gateSub}>
+                    Read what verified tenants, neighbors, and past buyers are saying about this address — before you sign anything.
+                  </p>
+                  <div style={styles.gateButtons}>
+                    <Link to="/signup" style={styles.gateSignUp}>Sign up free →</Link>
+                    <Link to="/signin" style={styles.gateSignIn}>Sign in</Link>
+                  </div>
+                  <p style={styles.gateFine}>Free for buyers, renters, and neighbors · Always will be</p>
+                </div>
+              </div>
             </div>
           ) : (
-            <div>
-              {comments.map(c => <Comment key={c.id} comment={c} onLike={toggleLike} />)}
-            </div>
+            /* Logged-in: full comment section */
+            <>
+              <CommentForm
+                onSubmit={postComment}
+                verificationStatus={verificationStatus}
+                onOpenVerify={() => setShowVerifyModal(true)}
+              />
+              {loadingComments ? (
+                <div style={{ textAlign: 'center', padding: 30, color: '#64748b', fontSize: 13 }}>Loading comments...</div>
+              ) : comments.length === 0 ? (
+                <div style={styles.empty}>
+                  <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>Be the first to comment</div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Share what you know about this building — past tenant, current resident, or neighbor.</div>
+                </div>
+              ) : (
+                <div>
+                  {comments.map(c => <Comment key={c.id} comment={c} onLike={toggleLike} />)}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -202,7 +243,7 @@ const styles = {
   idxDisclaimer: { fontSize: 11, color: '#94a3b8', lineHeight: 1.65, margin: '8px 0 4px' },
   idxUpdated: { fontSize: 11, color: '#94a3b8', margin: 0 },
 
-  // Fair Housing strip — shows on all listings
+  // Fair Housing strip
   fairHousingStrip: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: 'rgba(26,108,245,0.06)', border: '1.5px solid rgba(26,108,245,0.15)', borderRadius: 10, marginBottom: 12 },
   fairHousingStripIcon: { fontSize: 14 },
   fairHousingStripText: { fontSize: 12, color: '#475569' },
@@ -215,4 +256,111 @@ const styles = {
   empty: { textAlign: 'center', padding: 40, background: '#f8fafc', borderRadius: 12 },
   center: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 80 },
   spinner: { width: 36, height: 36, borderRadius: '50%', border: '3px solid #e8f0fe', borderTop: '3px solid #1a6cf5', animation: 'spin 0.8s linear infinite' },
+
+  // Gate styles
+  gateWrap: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    minHeight: 320,
+  },
+  blurredComments: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    filter: 'blur(4px)',
+    userSelect: 'none',
+    pointerEvents: 'none',
+    opacity: 0.7,
+  },
+  fakeComment: {
+    padding: '14px 16px',
+    background: '#f8fafc',
+    borderRadius: 10,
+    borderLeft: '3px solid #1a6cf5',
+  },
+  fakeCommentHeader: {
+    marginBottom: 6,
+  },
+  fakeRoleBadge: {
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 100,
+    background: '#e8f0fe',
+    color: '#1a6cf5',
+  },
+  fakeCommentText: {
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 1.55,
+    fontStyle: 'italic',
+    margin: 0,
+  },
+  gateOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.97) 40%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  gateCard: {
+    textAlign: 'center',
+    maxWidth: 400,
+    padding: '32px 28px',
+    background: '#fff',
+    borderRadius: 20,
+    border: '1.5px solid #e2e8f0',
+    boxShadow: '0 8px 32px rgba(26,108,245,0.1)',
+  },
+  gateIcon: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  gateTitle: {
+    fontFamily: 'var(--serif)',
+    fontSize: 22,
+    fontWeight: 700,
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  gateSub: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 1.6,
+    marginBottom: 24,
+  },
+  gateButtons: {
+    display: 'flex',
+    gap: 10,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  gateSignUp: {
+    padding: '12px 24px',
+    background: '#1a6cf5',
+    color: '#fff',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 700,
+    textDecoration: 'none',
+    boxShadow: '0 4px 12px rgba(26,108,245,0.3)',
+  },
+  gateSignIn: {
+    padding: '12px 24px',
+    background: '#f1f5f9',
+    color: '#475569',
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: 600,
+    textDecoration: 'none',
+  },
+  gateFine: {
+    fontSize: 11,
+    color: '#94a3b8',
+    margin: 0,
+  },
 }
