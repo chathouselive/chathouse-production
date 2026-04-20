@@ -30,7 +30,7 @@ export default function TopNav() {
     <nav style={styles.nav}>
       <div style={styles.inner}>
         <Link to="/" style={styles.logo}>
-          <ChathouseLogo height={36} />
+          <ChathouseLogo height={48} />
         </Link>
 
         <div style={styles.links}>
