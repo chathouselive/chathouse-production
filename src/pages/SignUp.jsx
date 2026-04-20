@@ -136,9 +136,15 @@ export default function SignUp() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @media (max-width: 768px) {
+          .signup-right-panel { display: none !important; }
+          .signup-form-panel { width: 100% !important; }
+        }
+      `}</style>
 
       {/* Left panel — form */}
-      <div style={styles.formPanel}>
+      <div style={styles.formPanel} className="signup-form-panel">
         <div style={styles.formInner}>
           <div style={{ marginBottom: 28 }}>
             <ChathouseLogo height={40} />
@@ -341,7 +347,7 @@ export default function SignUp() {
       </div>
 
       {/* Right panel — diagonal split */}
-      <div style={styles.rightPanel}>
+      <div style={styles.rightPanel} className="signup-right-panel">
         <div style={styles.topHalf}>
           <div style={styles.topOverlay}/>
           <div style={styles.topContent}>
