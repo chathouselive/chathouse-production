@@ -8,7 +8,6 @@ export function useListings({ city = null, type = null, search = '' } = {}) {
 
   useEffect(() => {
     let cancelled = false
-
     async function fetchListings() {
       setLoading(true)
       setError(null)
@@ -24,11 +23,32 @@ export function useListings({ city = null, type = null, search = '' } = {}) {
       if (search) query = query.or(`address.ilike.%${search}%,city.ilike.%${search}%,hood.ilike.%${search}%`)
 
       const { data, error } = await query.limit(100)
-
       if (cancelled) return
-      if (error) setError(error.message)
-      else setListings(data || [])
-      setLoading(false)
+      if (error) { setError(error.message); setLoading(false); return }
+
+      if (!data || data.length === 0) { setListings([]); setLoading(false); return }
+
+      // Fetch comment counts for all listings in one query
+      const listingIds = data.map(l => l.id)
+      const { data: commentCounts } = await supabase
+        .from('comments')
+        .select('listing_id')
+        .in('listing_id', listingIds)
+        .eq('is_hidden', false)
+
+      // Build a count map
+      const countMap = {}
+      commentCounts?.forEach(c => {
+        countMap[c.listing_id] = (countMap[c.listing_id] || 0) + 1
+      })
+
+      // Attach comment_count to each listing
+      const enriched = data.map(l => ({
+        ...l,
+        comment_count: countMap[l.id] || 0,
+      }))
+
+      if (!cancelled) { setListings(enriched); setLoading(false) }
     }
 
     fetchListings()
@@ -46,7 +66,6 @@ export function useListing(id) {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-
     async function fetch() {
       setLoading(true)
       const { data, error } = await supabase
@@ -59,7 +78,6 @@ export function useListing(id) {
       else setListing(data)
       setLoading(false)
     }
-
     fetch()
     return () => { cancelled = true }
   }, [id])
