@@ -115,7 +115,7 @@ export default function Profile() {
   }, [profile])
 
   async function fetchClientLinksCount() {
-    const { count } = await supabase.from('agent_clients').select('*', { count: 'exact', head: true }).eq('agent_id', userId).eq('status', 'active')
+    const { count } = await supabase.from('agent_clients').select('*', { count: 'exact', head: true }).eq('agent_id', userId)
     setClientLinksCount(count || 0)
   }
 
