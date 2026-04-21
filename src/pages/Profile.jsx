@@ -367,6 +367,9 @@ export default function Profile() {
                 {isOwn && <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>✏️ Edit profile</button>}
                 {!isOwn && user && (
                   <>
+                    {/* Message button — always visible */}
+                    <Link to={`/messages?user=${userId}`} style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#0f172a', textDecoration: 'none', marginTop: 36 }}>💬 Message</Link>
+
                     {/* Friend request button */}
                     {connectionStatus === null && <button onClick={sendFriendRequest} style={styles.actionBtn}>👥 Add Friend</button>}
                     {connectionStatus === 'sent' && <button disabled style={{ ...styles.actionBtn, opacity: 0.6, cursor: 'default' }}>⏳ Request Sent</button>}
