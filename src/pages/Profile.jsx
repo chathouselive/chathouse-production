@@ -148,6 +148,14 @@ export default function Profile() {
       setLinkStatus('sent')
       setShowLinkForm(false)
       setLinkMessage('')
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        type: 'link_request',
+        title: `${viewerProfile?.name?.split(' ')[0] || 'Someone'} wants to link with you`,
+        body: linkMessage.trim() || null,
+        related_user_id: user.id,
+        related_url: `/profile/${user.id}`,
+      })
     }
   }
 
@@ -292,7 +300,17 @@ export default function Profile() {
   async function sendFriendRequest() {
     if (!user) return
     const { data, error } = await supabase.from('connections').insert({ requester_id: user.id, recipient_id: userId, status: 'pending', connection_type: 'friend' }).select().single()
-    if (!error && data) { setConnectionStatus('sent'); setConnectionId(data.id) }
+    if (!error && data) {
+      setConnectionStatus('sent')
+      setConnectionId(data.id)
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        type: 'friend_request',
+        title: `${viewerProfile?.name?.split(' ')[0] || 'Someone'} sent you a friend request`,
+        related_user_id: user.id,
+        related_url: `/profile/${user.id}`,
+      })
+    }
   }
 
   async function acceptFriendRequest() { if (!connectionId) return; await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId); setConnectionStatus('accepted'); fetchFriends() }
@@ -493,7 +511,7 @@ export default function Profile() {
                             <div><div style={styles.friendName}>{friend.name}</div>{friend.city && <div style={styles.friendCity}>📍 {friend.city}</div>}<span style={{ ...styles.typeBadge, fontSize: 10, padding: '2px 8px', marginTop: 4, display: 'inline-block', background: fm.bg, color: fm.color }}>{fm.icon} {fm.label}</span></div>
                           </Link>
                           <div style={styles.friendActions}>
-                            <Link to={`/profile/${friend.id}`} style={styles.messageBtn}>💬 Message</Link>
+                            <Link to={`/messages?user=${friend.id}`} style={styles.messageBtn}>💬 Message</Link>
                             {isOwn && <button onClick={() => unfriend(friend.connectionId)} style={styles.unfriendBtn}>Unfriend</button>}
                           </div>
                         </div>
