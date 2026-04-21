@@ -376,7 +376,7 @@ export default function Profile() {
                             </button>
                           )}
                           {linkStatus === 'accepted' && (
-                            <button disabled style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', cursor: 'default' }}>
+                            <button onClick={unlinkRequest} style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer' }}>
                               🔗 Linked
                             </button>
                           )}
