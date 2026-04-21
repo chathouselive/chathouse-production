@@ -109,7 +109,7 @@ export default function Profile() {
       if (isPro) fetchClientLinksCount()
       if (hasReviews) fetchReviews()
       fetchAchievementStats()
-      if (user && !isOwn && isPro) checkLinkStatus()
+      if (user && !isOwn) checkLinkStatus()
       if (user && isOwn) fetchRequests()
     }
   }, [profile])
@@ -121,11 +121,11 @@ export default function Profile() {
 
   async function checkLinkStatus() {
     if (!user) return
+    // Check both directions: viewer sent to profile owner, or profile owner sent to viewer
     const { data } = await supabase
       .from('representation_requests')
-      .select('id, status')
-      .eq('agent_id', userId)
-      .eq('lead_user_id', user.id)
+      .select('id, status, agent_id, lead_user_id')
+      .or(`and(agent_id.eq.${userId},lead_user_id.eq.${user.id}),and(agent_id.eq.${user.id},lead_user_id.eq.${userId})`)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
