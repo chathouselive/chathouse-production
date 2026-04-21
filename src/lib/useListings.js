@@ -25,24 +25,22 @@ export function useListings({ city = null, type = null, search = '' } = {}) {
       const { data, error } = await query.limit(100)
       if (cancelled) return
       if (error) { setError(error.message); setLoading(false); return }
-
       if (!data || data.length === 0) { setListings([]); setLoading(false); return }
 
-      // Fetch comment counts for all listings in one query
       const listingIds = data.map(l => l.id)
+
+      // Fetch comment counts
       const { data: commentCounts } = await supabase
         .from('comments')
         .select('listing_id')
         .in('listing_id', listingIds)
         .eq('is_hidden', false)
 
-      // Build a count map
       const countMap = {}
       commentCounts?.forEach(c => {
         countMap[c.listing_id] = (countMap[c.listing_id] || 0) + 1
       })
 
-      // Attach comment_count to each listing
       const enriched = data.map(l => ({
         ...l,
         comment_count: countMap[l.id] || 0,
@@ -83,4 +81,47 @@ export function useListing(id) {
   }, [id])
 
   return { listing, loading, error }
+}
+
+export async function toggleListingLike(listingId, userId, currentLiked, currentCount) {
+  if (!userId) return { liked: currentLiked, count: currentCount }
+
+  if (currentLiked) {
+    // Unlike
+    await supabase
+      .from('listing_likes')
+      .delete()
+      .eq('listing_id', listingId)
+      .eq('user_id', userId)
+
+    await supabase
+      .from('listings')
+      .update({ likes_count: Math.max(0, currentCount - 1) })
+      .eq('id', listingId)
+
+    return { liked: false, count: Math.max(0, currentCount - 1) }
+  } else {
+    // Like
+    await supabase
+      .from('listing_likes')
+      .insert({ listing_id: listingId, user_id: userId })
+
+    await supabase
+      .from('listings')
+      .update({ likes_count: currentCount + 1 })
+      .eq('id', listingId)
+
+    return { liked: true, count: currentCount + 1 }
+  }
+}
+
+export async function getListingLikeStatus(listingId, userId) {
+  if (!userId) return false
+  const { data } = await supabase
+    .from('listing_likes')
+    .select('id')
+    .eq('listing_id', listingId)
+    .eq('user_id', userId)
+    .single()
+  return !!data
 }
