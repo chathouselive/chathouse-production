@@ -209,12 +209,18 @@ export default function Messages() {
     const text = newMessage.trim()
     setNewMessage('')
 
-    await supabase.from('messages').insert({
+    const { data: newMsg } = await supabase.from('messages').insert({
       conversation_id: activeConv.id,
       sender_id: user.id,
       text,
       is_read: false,
-    })
+    }).select().single()
+
+    // Add to local state immediately
+    if (newMsg) {
+      setMessages(prev => [...prev, newMsg])
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    }
 
     await supabase
       .from('conversations')
