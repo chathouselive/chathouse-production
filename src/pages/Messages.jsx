@@ -25,14 +25,48 @@ export default function Messages() {
   }, [user])
 
   useEffect(() => {
-    if (initUserId && conversations.length > 0) {
-      const existing = conversations.find(c =>
-        c.other_user.id === initUserId
-      )
-      if (existing) setActiveConv(existing)
-      else openOrCreateConversation(initUserId)
+    if (!initUserId || !user) return
+    handleInitConversation()
+  }, [initUserId, user])
+
+  async function handleInitConversation() {
+    // Check if conversation already exists
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('*')
+      .or(`and(user1_id.eq.${user.id},user2_id.eq.${initUserId}),and(user1_id.eq.${initUserId},user2_id.eq.${user.id})`)
+      .single()
+
+    if (existing) {
+      // Fetch other user profile
+      const otherId = existing.user1_id === user.id ? existing.user2_id : existing.user1_id
+      const { data: otherProfile } = await supabase
+        .from('profiles')
+        .select('id, name, photo_url, account_type')
+        .eq('id', otherId)
+        .single()
+      setActiveConv({ ...existing, other_user: otherProfile || { id: otherId } })
+      fetchConversations()
+      return
     }
-  }, [initUserId, conversations])
+
+    // Create new conversation
+    const { data: newConv } = await supabase
+      .from('conversations')
+      .insert({ user1_id: user.id, user2_id: initUserId })
+      .select()
+      .single()
+
+    if (newConv) {
+      const { data: otherProfile } = await supabase
+        .from('profiles')
+        .select('id, name, photo_url, account_type')
+        .eq('id', initUserId)
+        .single()
+      setActiveConv({ ...newConv, other_user: otherProfile || { id: initUserId } })
+      fetchConversations()
+    }
+  }
 
   useEffect(() => {
     if (activeConv) {
