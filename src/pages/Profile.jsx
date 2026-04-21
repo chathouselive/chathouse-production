@@ -47,7 +47,7 @@ function getAchievements(accountType, stats) {
 export default function Profile() {
   const { userId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile: viewerProfile } = useAuth()
   const { profile, loading } = useProfile(userId)
   const isOwn = user?.id === userId
   const isPro = ['agent', 'broker'].includes(profile?.account_type)
@@ -334,33 +334,41 @@ export default function Profile() {
                     {connectionStatus === 'pending' && <button onClick={acceptFriendRequest} style={{ ...styles.actionBtn, background: '#16a34a' }}>✅ Accept Request</button>}
                     {connectionStatus === 'accepted' && <button onClick={() => unfriend(connectionId)} style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#64748b' }}>👥 Friends</button>}
 
-                    {/* Link request button — only shown on agent/broker profiles */}
-                    {isPro && (
-                      <>
-                        {linkStatus === null && (
-                          <button onClick={() => setShowLinkForm(f => !f)} style={{ ...styles.actionBtn, background: '#f97316' }}>
-                            🔗 Request Link
-                          </button>
-                        )}
-                        {linkStatus === 'sent' && (
-                          <button disabled style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#64748b', cursor: 'default' }}>
-                            ⏳ Link Requested
-                          </button>
-                        )}
-                        {linkStatus === 'accepted' && (
-                          <button disabled style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', cursor: 'default' }}>
-                            🔗 Linked
-                          </button>
-                        )}
-                      </>
-                    )}
+                    {/* Link request button:
+                        Agents/brokers can request anyone except property managers.
+                        Everyone else can only request agents/brokers. */}
+                    {(() => {
+                      const viewerIsPro = ['agent','broker'].includes(viewerProfile?.account_type)
+                      const targetIsManagement = profile.account_type === 'management'
+                      const showLink = viewerIsPro ? !targetIsManagement : isPro
+                      if (!showLink) return null
+                      return (
+                        <>
+                          {linkStatus === null && (
+                            <button onClick={() => setShowLinkForm(f => !f)} style={{ ...styles.actionBtn, background: '#f97316' }}>
+                              🔗 Request Link
+                            </button>
+                          )}
+                          {linkStatus === 'sent' && (
+                            <button disabled style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#64748b', cursor: 'default' }}>
+                              ⏳ Link Requested
+                            </button>
+                          )}
+                          {linkStatus === 'accepted' && (
+                            <button disabled style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', cursor: 'default' }}>
+                              🔗 Linked
+                            </button>
+                          )}
+                        </>
+                      )
+                    })()}
                   </>
                 )}
               </div>
             </div>
 
             {/* Link request form — inline below header */}
-            {showLinkForm && isPro && !isOwn && (
+            {showLinkForm && !isOwn && (
               <div style={styles.linkForm}>
                 <div style={styles.linkFormTitle}>
                   Request {profile.name?.split(' ')[0]} as your {profile.account_type === 'agent' ? 'agent' : 'mortgage broker'}
