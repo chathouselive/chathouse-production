@@ -266,6 +266,29 @@ export default function Profile() {
     if (data) { setConnectionId(data.id); if (data.status === 'accepted') setConnectionStatus('accepted'); else if (data.requester_id === user.id) setConnectionStatus('sent'); else setConnectionStatus('pending') }
   }
 
+  async function unlinkRequest() {
+    const proName = profile.name?.split(' ')[0]
+    const confirmed = window.confirm(`Are you sure you want to unlink from ${proName}? This will remove the client relationship on both sides.`)
+    if (!confirmed) return
+
+    // Delete agent_clients row (both directions)
+    await supabase
+      .from('agent_clients')
+      .delete()
+      .or(`and(agent_id.eq.${userId},client_user_id.eq.${user.id}),and(agent_id.eq.${user.id},client_user_id.eq.${userId})`)
+
+    // Update representation_requests to unlinked
+    await supabase
+      .from('representation_requests')
+      .update({ status: 'unlinked' })
+      .or(`and(agent_id.eq.${userId},lead_user_id.eq.${user.id}),and(agent_id.eq.${user.id},lead_user_id.eq.${userId})`)
+
+    setLinkStatus(null)
+    if (isPro || ['agent','broker'].includes(viewerProfile?.account_type)) {
+      fetchClientLinksCount()
+    }
+  }
+
   async function sendFriendRequest() {
     if (!user) return
     const { data, error } = await supabase.from('connections').insert({ requester_id: user.id, recipient_id: userId, status: 'pending', connection_type: 'friend' }).select().single()
