@@ -101,10 +101,7 @@ export default function Profile() {
     if (!userId) return
     fetchPosts()
     fetchFriends()
-    if (user && !isOwn) {
-      checkConnectionStatus()
-    }
-    if (user && isOwn) fetchRequests()
+    if (user && !isOwn) checkConnectionStatus()
   }, [userId, user])
 
   useEffect(() => {
@@ -113,6 +110,7 @@ export default function Profile() {
       if (hasReviews) fetchReviews()
       fetchAchievementStats()
       if (user && !isOwn && isPro) checkLinkStatus()
+      if (user && isOwn) fetchRequests()
     }
   }, [profile])
 
