@@ -19,7 +19,7 @@ const POST_PLACEHOLDERS = {
   broker: 'Share a rate update, financing tip, or market insight...',
   landlord: 'Share an update about your properties or the rental market...',
   management: 'Share a portfolio update or property management insight...',
-  buyer: 'Share what you\'re looking for or your experience so far...',
+  buyer: "Share what you're looking for or your experience so far...",
 }
 
 export default function Profile() {
@@ -30,26 +30,108 @@ export default function Profile() {
   const isOwn = user?.id === userId
 
   const [activeTab, setActiveTab] = useState('updates')
+
+  // Posts state
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(true)
   const [postContent, setPostContent] = useState('')
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
 
+  // Friends state
+  const [friends, setFriends] = useState([])
+  const [friendsLoading, setFriendsLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState(null) // null | 'pending' | 'accepted' | 'sent'
+  const [connectionId, setConnectionId] = useState(null)
+
   useEffect(() => {
     if (!userId) return
     fetchPosts()
-  }, [userId])
+    fetchFriends()
+    if (user && !isOwn) checkConnectionStatus()
+  }, [userId, user])
 
   async function fetchPosts() {
     setPostsLoading(true)
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profile_posts')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-    if (!error) setPosts(data || [])
+    setPosts(data || [])
     setPostsLoading(false)
+  }
+
+  async function fetchFriends() {
+    setFriendsLoading(true)
+    const { data } = await supabase
+      .from('connections')
+      .select('id, requester_id, recipient_id, status')
+      .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`)
+      .eq('status', 'accepted')
+    if (data && data.length > 0) {
+      const friendIds = data.map(c =>
+        c.requester_id === userId ? c.recipient_id : c.requester_id
+      )
+      const connectionMap = {}
+      data.forEach(c => {
+        const fId = c.requester_id === userId ? c.recipient_id : c.requester_id
+        connectionMap[fId] = c.id
+      })
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, photo_url, account_type, city')
+        .in('id', friendIds)
+      setFriends((profiles || []).map(p => ({ ...p, connectionId: connectionMap[p.id] })))
+    } else {
+      setFriends([])
+    }
+    setFriendsLoading(false)
+  }
+
+  async function checkConnectionStatus() {
+    if (!user) return
+    const { data } = await supabase
+      .from('connections')
+      .select('id, status, requester_id')
+      .or(`and(requester_id.eq.${user.id},recipient_id.eq.${userId}),and(requester_id.eq.${userId},recipient_id.eq.${user.id})`)
+      .single()
+    if (data) {
+      setConnectionId(data.id)
+      if (data.status === 'accepted') {
+        setConnectionStatus('accepted')
+      } else if (data.requester_id === user.id) {
+        setConnectionStatus('sent')
+      } else {
+        setConnectionStatus('pending')
+      }
+    }
+  }
+
+  async function sendFriendRequest() {
+    if (!user) return
+    const { data, error } = await supabase
+      .from('connections')
+      .insert({ requester_id: user.id, recipient_id: userId, status: 'pending', connection_type: 'friend' })
+      .select()
+      .single()
+    if (!error && data) {
+      setConnectionStatus('sent')
+      setConnectionId(data.id)
+    }
+  }
+
+  async function acceptFriendRequest() {
+    if (!connectionId) return
+    await supabase.from('connections').update({ status: 'accepted' }).eq('id', connectionId)
+    setConnectionStatus('accepted')
+    fetchFriends()
+  }
+
+  async function unfriend(connId) {
+    await supabase.from('connections').delete().eq('id', connId)
+    setFriends(prev => prev.filter(f => f.connectionId !== connId))
+    if (connId === connectionId) setConnectionStatus(null)
   }
 
   async function handlePost() {
@@ -60,12 +142,8 @@ export default function Profile() {
       .from('profile_posts')
       .insert({ user_id: user.id, content: postContent.trim() })
     setPosting(false)
-    if (error) {
-      setPostError('Failed to post. Please try again.')
-    } else {
-      setPostContent('')
-      fetchPosts()
-    }
+    if (error) setPostError('Failed to post. Please try again.')
+    else { setPostContent(''); fetchPosts() }
   }
 
   async function handleDeletePost(postId) {
@@ -137,11 +215,27 @@ export default function Profile() {
                   {profile.move_timeline && <span style={styles.metaText}>· Moving in {profile.move_timeline}</span>}
                 </div>
               </div>
-              {isOwn && (
-                <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>
-                  ✏️ Edit profile
-                </button>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                {isOwn && (
+                  <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>✏️ Edit profile</button>
+                )}
+                {!isOwn && user && (
+                  <>
+                    {connectionStatus === null && (
+                      <button onClick={sendFriendRequest} style={styles.friendBtn}>👥 Add Friend</button>
+                    )}
+                    {connectionStatus === 'sent' && (
+                      <button disabled style={{ ...styles.friendBtn, opacity: 0.6, cursor: 'default' }}>⏳ Request Sent</button>
+                    )}
+                    {connectionStatus === 'pending' && (
+                      <button onClick={acceptFriendRequest} style={{ ...styles.friendBtn, background: '#16a34a' }}>✅ Accept Request</button>
+                    )}
+                    {connectionStatus === 'accepted' && (
+                      <button onClick={() => unfriend(connectionId)} style={{ ...styles.friendBtn, background: '#f1f5f9', color: '#64748b' }}>👥 Friends</button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {profile.bio ? (
@@ -156,12 +250,10 @@ export default function Profile() {
                 <div style={styles.statNum}>{posts.length}</div>
                 <div style={styles.statLabel}>Updates</div>
               </div>
-              {profile.account_type === 'agent' && h.deals_closed && (
-                <div style={styles.stat}>
-                  <div style={styles.statNum}>{h.deals_closed}</div>
-                  <div style={styles.statLabel}>Deals</div>
-                </div>
-              )}
+              <div style={styles.stat}>
+                <div style={styles.statNum}>{friends.length}</div>
+                <div style={styles.statLabel}>Friends</div>
+              </div>
               {profile.account_type === 'agent' && h.avg_rating && (
                 <div style={styles.stat}>
                   <div style={styles.statNum}>{h.avg_rating} ⭐</div>
@@ -174,61 +266,39 @@ export default function Profile() {
 
         {/* Highlights */}
         {profile.account_type === 'agent' && (
-          <HighlightsCard
-            title="Agent Highlights"
-            items={[
-              { icon: '🏙️', label: 'Market', value: h.market },
-              { icon: '📅', label: 'Experience', value: h.experience },
-              { icon: '🏠', label: 'Deals Closed', value: h.deals_closed },
-              { icon: '⭐', label: 'Avg Rating', value: h.avg_rating },
-              { icon: '🏢', label: 'Brokerage', value: profile.company || h.brokerage },
-              { icon: '🎓', label: 'Specialty', value: h.specialty },
-            ]}
-            license={profile.license_number}
-            isOwn={isOwn}
-          />
+          <HighlightsCard title="Agent Highlights" items={[
+            { icon: '🏙️', label: 'Market', value: h.market },
+            { icon: '📅', label: 'Experience', value: h.experience },
+            { icon: '🏠', label: 'Deals Closed', value: h.deals_closed },
+            { icon: '⭐', label: 'Avg Rating', value: h.avg_rating },
+            { icon: '🏢', label: 'Brokerage', value: profile.company || h.brokerage },
+            { icon: '🎓', label: 'Specialty', value: h.specialty },
+          ]} license={profile.license_number} isOwn={isOwn}/>
         )}
-
         {profile.account_type === 'broker' && (
-          <HighlightsCard
-            title="Broker Highlights"
-            items={[
-              { icon: '🏦', label: 'Lender', value: profile.company || h.lender },
-              { icon: '📅', label: 'Experience', value: h.experience },
-              { icon: '📋', label: 'Loans Closed', value: h.loans_closed },
-              { icon: '⭐', label: 'Avg Rating', value: h.avg_rating },
-              { icon: '💰', label: 'Loan Types', value: h.loan_types },
-              { icon: '⚡', label: 'Avg Close Time', value: h.avg_close_time },
-            ]}
-            license={profile.license_number}
-            isOwn={isOwn}
-          />
+          <HighlightsCard title="Broker Highlights" items={[
+            { icon: '🏦', label: 'Lender', value: profile.company || h.lender },
+            { icon: '📅', label: 'Experience', value: h.experience },
+            { icon: '📋', label: 'Loans Closed', value: h.loans_closed },
+            { icon: '⭐', label: 'Avg Rating', value: h.avg_rating },
+            { icon: '💰', label: 'Loan Types', value: h.loan_types },
+            { icon: '⚡', label: 'Avg Close Time', value: h.avg_close_time },
+          ]} license={profile.license_number} isOwn={isOwn}/>
         )}
-
         {profile.account_type === 'landlord' && (
-          <HighlightsCard
-            title="Landlord"
-            items={[
-              { icon: '🏢', label: 'Company', value: profile.company },
-              { icon: '🏡', label: 'Properties', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
-              { icon: '📅', label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
-            ]}
-            isOwn={isOwn}
-          />
+          <HighlightsCard title="Landlord" items={[
+            { icon: '🏢', label: 'Company', value: profile.company },
+            { icon: '🏡', label: 'Properties', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
+            { icon: '📅', label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
+          ]} isOwn={isOwn}/>
         )}
-
         {profile.account_type === 'management' && (
-          <HighlightsCard
-            title="Property Management"
-            items={[
-              { icon: '🏢', label: 'Company', value: profile.company },
-              { icon: '🏘️', label: 'Portfolio Size', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
-              { icon: '📅', label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
-            ]}
-            isOwn={isOwn}
-          />
+          <HighlightsCard title="Property Management" items={[
+            { icon: '🏢', label: 'Company', value: profile.company },
+            { icon: '🏘️', label: 'Portfolio Size', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
+            { icon: '📅', label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
+          ]} isOwn={isOwn}/>
         )}
-
         {profile.account_type === 'buyer' && profile.looking_for && (
           <div style={styles.card}>
             <div style={{ padding: 24 }}>
@@ -241,18 +311,19 @@ export default function Profile() {
         {/* Tabs */}
         <div style={styles.card}>
           <div style={styles.tabRow}>
-            <button
-              onClick={() => setActiveTab('updates')}
-              style={{ ...styles.tab, ...(activeTab === 'updates' ? styles.tabActive : {}) }}
-            >
+            <button onClick={() => setActiveTab('updates')} style={{ ...styles.tab, ...(activeTab === 'updates' ? styles.tabActive : {}) }}>
               📝 Updates {posts.length > 0 && `(${posts.length})`}
+            </button>
+            <button onClick={() => setActiveTab('friends')} style={{ ...styles.tab, ...(activeTab === 'friends' ? styles.tabActive : {}) }}>
+              👥 Friends {friends.length > 0 && `(${friends.length})`}
             </button>
           </div>
 
           <div style={{ padding: '0 24px 24px' }}>
+
+            {/* Updates tab */}
             {activeTab === 'updates' && (
               <>
-                {/* Composer — only show on own profile */}
                 {isOwn && (
                   <div style={styles.composer}>
                     <div style={styles.composerInner}>
@@ -273,14 +344,7 @@ export default function Profile() {
                         />
                         {postError && <div style={styles.postError}>{postError}</div>}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                          <button
-                            onClick={handlePost}
-                            disabled={posting || !postContent.trim()}
-                            style={{
-                              ...styles.postBtn,
-                              opacity: posting || !postContent.trim() ? 0.5 : 1,
-                            }}
-                          >
+                          <button onClick={handlePost} disabled={posting || !postContent.trim()} style={{ ...styles.postBtn, opacity: posting || !postContent.trim() ? 0.5 : 1 }}>
                             {posting ? 'Posting...' : 'Post'}
                           </button>
                         </div>
@@ -288,20 +352,16 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
-
-                {/* Posts feed */}
                 {postsLoading ? (
                   <div style={{ textAlign: 'center', padding: 30, color: '#64748b', fontSize: 13 }}>Loading...</div>
                 ) : posts.length === 0 ? (
-                  <div style={styles.emptyPosts}>
+                  <div style={styles.emptyTab}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4, fontSize: 15 }}>No updates yet</div>
-                    <div style={{ fontSize: 13, color: '#64748b' }}>
-                      {isOwn ? 'Share your first update above.' : 'This user hasn\'t posted any updates yet.'}
-                    </div>
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>No updates yet</div>
+                    <div style={{ fontSize: 13, color: '#64748b' }}>{isOwn ? 'Share your first update above.' : 'No updates posted yet.'}</div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: isOwn ? 16 : 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: isOwn ? 16 : 8 }}>
                     {posts.map(post => (
                       <div key={post.id} style={styles.postCard}>
                         <div style={styles.postHeader}>
@@ -315,16 +375,14 @@ export default function Profile() {
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <span style={styles.postName}>{profile.name}</span>
-                              <span style={{ ...styles.typeBadge, ...styles.postBadge, background: typeMeta.bg, color: typeMeta.color }}>
+                              <span style={{ ...styles.typeBadge, fontSize: 10, padding: '2px 8px', background: typeMeta.bg, color: typeMeta.color }}>
                                 {typeMeta.icon} {typeMeta.label}
                               </span>
                               <span style={styles.postTime}>{timeAgo(post.created_at)}</span>
                             </div>
                           </div>
                           {isOwn && (
-                            <button onClick={() => handleDeletePost(post.id)} style={styles.deleteBtn} title="Delete post">
-                              🗑️
-                            </button>
+                            <button onClick={() => handleDeletePost(post.id)} style={styles.deleteBtn}>🗑️</button>
                           )}
                         </div>
                         <p style={styles.postContent}>{post.content}</p>
@@ -334,6 +392,56 @@ export default function Profile() {
                 )}
               </>
             )}
+
+            {/* Friends tab */}
+            {activeTab === 'friends' && (
+              <>
+                {friendsLoading ? (
+                  <div style={{ textAlign: 'center', padding: 30, color: '#64748b', fontSize: 13 }}>Loading...</div>
+                ) : friends.length === 0 ? (
+                  <div style={styles.emptyTab}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
+                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>No friends yet</div>
+                    <div style={{ fontSize: 13, color: '#64748b' }}>
+                      {isOwn ? 'Connect with people you meet in listing conversations.' : 'No connections yet.'}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                    {friends.map(friend => {
+                      const friendMeta = ACCOUNT_TYPE_LABELS[friend.account_type] || ACCOUNT_TYPE_LABELS.buyer
+                      return (
+                        <div key={friend.id} style={styles.friendCard}>
+                          <Link to={`/profile/${friend.id}`} style={styles.friendLeft}>
+                            <div style={styles.friendAvatar}>
+                              {friend.photo_url ? (
+                                <img src={friend.photo_url} alt={friend.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}/>
+                              ) : (
+                                <div style={styles.friendAvatarInitial}>{friend.name?.[0]?.toUpperCase()}</div>
+                              )}
+                            </div>
+                            <div>
+                              <div style={styles.friendName}>{friend.name}</div>
+                              {friend.city && <div style={styles.friendCity}>📍 {friend.city}</div>}
+                              <span style={{ ...styles.typeBadge, fontSize: 10, padding: '2px 8px', marginTop: 4, display: 'inline-block', background: friendMeta.bg, color: friendMeta.color }}>
+                                {friendMeta.icon} {friendMeta.label}
+                              </span>
+                            </div>
+                          </Link>
+                          <div style={styles.friendActions}>
+                            <Link to={`/profile/${friend.id}`} style={styles.messageBtn}>💬 Message</Link>
+                            {isOwn && (
+                              <button onClick={() => unfriend(friend.connectionId)} style={styles.unfriendBtn}>Unfriend</button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
           </div>
         </div>
       </div>
@@ -347,11 +455,7 @@ function HighlightsCard({ title, items, license, isOwn }) {
     <div style={styles.card}>
       <div style={{ padding: 24 }}>
         <h2 style={styles.h2}>{title}</h2>
-        {license && (
-          <div style={{ marginBottom: 14, fontSize: 12, color: '#64748b' }}>
-            License #: <strong>{license}</strong>
-          </div>
-        )}
+        {license && <div style={{ marginBottom: 14, fontSize: 12, color: '#64748b' }}>License #: <strong>{license}</strong></div>}
         <div style={styles.highlightsGrid}>
           {items.map(item => (
             <div key={item.label} style={styles.highlight}>
@@ -383,7 +487,8 @@ const styles = {
   adminBadge: { fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 4, background: '#0f172a', color: '#fff', letterSpacing: 0.5 },
   typeBadge: { fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 100 },
   metaText: { fontSize: 12, color: '#64748b' },
-  editBtn: { marginTop: 36, padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer' },
+  editBtn: { padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', marginTop: 36 },
+  friendBtn: { padding: '8px 14px', background: '#1a6cf5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 36 },
   bio: { fontSize: 14, color: '#334155', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
   bioPlaceholder: { fontSize: 13, color: '#94a3b8', fontStyle: 'italic' },
   statsRow: { display: 'flex', gap: 24, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9' },
@@ -396,13 +501,9 @@ const styles = {
   highlight: { display: 'flex', alignItems: 'center', gap: 10, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #f1f5f9' },
   highlightLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 },
   highlightValue: { fontSize: 13, fontWeight: 600, marginTop: 2 },
-
-  // Tabs
   tabRow: { display: 'flex', gap: 0, borderBottom: '1.5px solid #e2e8f0', padding: '0 24px' },
   tab: { padding: '14px 16px', background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer', borderBottom: '2px solid transparent', marginBottom: -2 },
   tabActive: { color: '#1a6cf5', borderBottomColor: '#1a6cf5' },
-
-  // Composer
   composer: { marginBottom: 4 },
   composerInner: { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '16px 0 12px', borderBottom: '1px solid #f1f5f9' },
   composerAvatar: { width: 38, height: 38, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg, #1a6cf5, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
@@ -410,19 +511,24 @@ const styles = {
   composerInput: { width: '100%', padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, color: '#0f172a', outline: 'none', resize: 'vertical', fontFamily: 'inherit', background: '#f8fafc', boxSizing: 'border-box' },
   postBtn: { padding: '8px 20px', background: '#1a6cf5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
   postError: { fontSize: 12, color: '#dc2626', marginTop: 6 },
-
-  // Posts
-  postCard: { padding: '16px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' },
+  postCard: { padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' },
   postHeader: { display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
   postAvatar: { width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg, #1a6cf5, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   postAvatarInitial: { color: '#fff', fontSize: 14, fontWeight: 700 },
   postName: { fontSize: 13, fontWeight: 700, color: '#0f172a' },
-  postBadge: { fontSize: 10, padding: '2px 8px' },
   postTime: { fontSize: 11, color: '#94a3b8' },
   postContent: { fontSize: 14, color: '#334155', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap' },
   deleteBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.5, padding: 4, marginLeft: 'auto' },
-
-  emptyPosts: { textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 12, margin: '8px 0' },
+  emptyTab: { textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 12, margin: '16px 0' },
+  friendCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', gap: 12, flexWrap: 'wrap' },
+  friendLeft: { display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flex: 1 },
+  friendAvatar: { width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg, #1a6cf5, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  friendAvatarInitial: { color: '#fff', fontSize: 18, fontWeight: 700 },
+  friendName: { fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 2 },
+  friendCity: { fontSize: 12, color: '#64748b', marginBottom: 4 },
+  friendActions: { display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 },
+  messageBtn: { padding: '8px 16px', background: '#e8f0fe', color: '#1a6cf5', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', textAlign: 'center' },
+  unfriendBtn: { padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center' },
   center: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 80, color: '#64748b' },
   spinner: { width: 36, height: 36, borderRadius: '50%', border: '3px solid #e8f0fe', borderTop: '3px solid #1a6cf5', animation: 'spin 0.8s linear infinite' },
 }
