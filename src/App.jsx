@@ -8,6 +8,7 @@ import ListingDetail from './pages/ListingDetail'
 import AddListing from './pages/AddListing'
 import Profile from './pages/Profile'
 import ProfileEdit from './pages/ProfileEdit'
+import Messages from './pages/Messages'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminPhotos from './pages/admin/AdminPhotos'
@@ -20,22 +21,8 @@ import FairHousing from './pages/FairHousing'
 
 function LoadingScreen() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column',
-      gap: 16,
-    }}>
-      <div style={{
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        border: '3px solid #e8f0fe',
-        borderTop: '3px solid #1a6cf5',
-        animation: 'spin 0.8s linear infinite',
-      }}/>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e8f0fe', borderTop: '3px solid #1a6cf5', animation: 'spin 0.8s linear infinite' }}/>
       <p style={{ color: '#64748b', fontSize: 14 }}>Loading Chathouse...</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -57,6 +44,7 @@ export default function App() {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/listings" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/listing/:id" element={<ListingDetail />} />
+      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
       <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
