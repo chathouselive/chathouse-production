@@ -23,10 +23,8 @@ const POST_PLACEHOLDERS = {
 }
 
 function getAchievements(accountType, stats) {
-  const { clientLinks, commentLikes, avgRating, firstComment, commentedListings, friendCount, claimedProperties, reviewCount } = stats
-
+  const { clientLinks, commentLikes, avgRating, firstComment, commentedListings, friendCount, claimedProperties } = stats
   const all = []
-
   if (['agent', 'broker'].includes(accountType)) {
     all.push({ id: 'first_link', icon: '🏆', title: 'First Link', desc: 'Got your first client link', earned: clientLinks >= 1, bg: '#fefce8', border: '#fde68a', earnedColor: '#92400e' })
     all.push({ id: '5_links', icon: '🥇', title: '5 Client Links', desc: '5 buyers linked your profile', earned: clientLinks >= 5, progress: Math.min(clientLinks, 5), total: 5, bg: '#f0fdf4', border: '#bbf7d0', earnedColor: '#166534' })
@@ -34,19 +32,15 @@ function getAchievements(accountType, stats) {
     all.push({ id: '25_links', icon: '⭐', title: '25 Client Links', desc: '25 buyers linked your profile', earned: clientLinks >= 25, progress: Math.min(clientLinks, 25), total: 25, bg: '#fdf4ff', border: '#e9d5ff', earnedColor: '#6b21a8' })
     all.push({ id: 'top_rated', icon: '⭐', title: 'Top Rated', desc: 'Achieved a 4.5+ star rating', earned: avgRating >= 4.5, bg: '#fefce8', border: '#fde68a', earnedColor: '#92400e' })
   }
-
   if (accountType === 'management') {
     all.push({ id: 'first_claim', icon: '🏢', title: 'First Claim', desc: 'Claimed your first building', earned: claimedProperties >= 1, bg: '#fefce8', border: '#fde68a', earnedColor: '#92400e' })
     all.push({ id: '5_buildings', icon: '🏘️', title: '5 Buildings', desc: 'Claimed 5 properties', earned: claimedProperties >= 5, progress: Math.min(claimedProperties, 5), total: 5, bg: '#f0fdf4', border: '#bbf7d0', earnedColor: '#166534' })
     all.push({ id: 'top_rated_mgmt', icon: '⭐', title: 'Top Rated', desc: 'Achieved a 4.5+ star rating', earned: avgRating >= 4.5, bg: '#fefce8', border: '#fde68a', earnedColor: '#92400e' })
   }
-
-  // All users
   all.push({ id: 'first_comment', icon: '💬', title: 'First Comment', desc: 'Left your first comment on a listing', earned: firstComment, bg: '#eff6ff', border: '#bfdbfe', earnedColor: '#1e40af' })
   all.push({ id: 'explorer', icon: '🔍', title: 'Explorer', desc: 'Commented on 5+ different listings', earned: commentedListings >= 5, progress: Math.min(commentedListings, 5), total: 5, bg: '#f0fdf4', border: '#bbf7d0', earnedColor: '#166534' })
   all.push({ id: 'community_voice', icon: '🗣️', title: 'Community Voice', desc: 'Received 50+ comment likes', earned: commentLikes >= 50, progress: Math.min(commentLikes, 50), total: 50, bg: '#fdf4ff', border: '#e9d5ff', earnedColor: '#6b21a8' })
   all.push({ id: 'connected', icon: '👥', title: 'Connected', desc: 'Made your first friend connection', earned: friendCount >= 1, bg: '#fff3e8', border: '#fed7aa', earnedColor: '#c2410c' })
-
   return all
 }
 
@@ -62,23 +56,34 @@ export default function Profile() {
 
   const [activeTab, setActiveTab] = useState('updates')
 
+  // Posts
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(true)
   const [postContent, setPostContent] = useState('')
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
 
+  // Friends
   const [friends, setFriends] = useState([])
   const [friendsLoading, setFriendsLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState(null)
   const [connectionId, setConnectionId] = useState(null)
 
+  // Link request
+  const [linkStatus, setLinkStatus] = useState(null) // null | 'sent' | 'accepted'
+  const [showLinkForm, setShowLinkForm] = useState(false)
+  const [linkMessage, setLinkMessage] = useState('')
+  const [sendingLink, setSendingLink] = useState(false)
+
+  // Client links
   const [clientLinksCount, setClientLinksCount] = useState(0)
 
+  // Requests
   const [friendRequests, setFriendRequests] = useState([])
   const [linkRequests, setLinkRequests] = useState([])
   const [requestsLoading, setRequestsLoading] = useState(true)
 
+  // Reviews
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [avgRating, setAvgRating] = useState(0)
@@ -89,13 +94,16 @@ export default function Profile() {
   const [reviewError, setReviewError] = useState('')
   const [showReviewForm, setShowReviewForm] = useState(false)
 
-  const [achievementStats, setAchievementStats] = useState({ clientLinks: 0, commentLikes: 0, avgRating: 0, firstComment: false, commentedListings: 0, friendCount: 0, claimedProperties: 0, reviewCount: 0 })
+  // Achievements
+  const [achievementStats, setAchievementStats] = useState({ clientLinks: 0, commentLikes: 0, avgRating: 0, firstComment: false, commentedListings: 0, friendCount: 0, claimedProperties: 0 })
 
   useEffect(() => {
     if (!userId) return
     fetchPosts()
     fetchFriends()
-    if (user && !isOwn) checkConnectionStatus()
+    if (user && !isOwn) {
+      checkConnectionStatus()
+    }
     if (user && isOwn) fetchRequests()
   }, [userId, user])
 
@@ -104,12 +112,45 @@ export default function Profile() {
       if (isPro) fetchClientLinksCount()
       if (hasReviews) fetchReviews()
       fetchAchievementStats()
+      if (user && !isOwn && isPro) checkLinkStatus()
     }
   }, [profile])
 
   async function fetchClientLinksCount() {
     const { count } = await supabase.from('agent_clients').select('*', { count: 'exact', head: true }).eq('agent_id', userId).eq('status', 'active')
     setClientLinksCount(count || 0)
+  }
+
+  async function checkLinkStatus() {
+    if (!user) return
+    const { data } = await supabase
+      .from('representation_requests')
+      .select('id, status')
+      .eq('agent_id', userId)
+      .eq('lead_user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (data) {
+      setLinkStatus(data.status === 'accepted' ? 'accepted' : 'sent')
+    }
+  }
+
+  async function sendLinkRequest() {
+    if (!user) return
+    setSendingLink(true)
+    const { error } = await supabase.from('representation_requests').insert({
+      agent_id: userId,
+      lead_user_id: user.id,
+      message: linkMessage.trim() || null,
+      status: 'pending',
+    })
+    setSendingLink(false)
+    if (!error) {
+      setLinkStatus('sent')
+      setShowLinkForm(false)
+      setLinkMessage('')
+    }
   }
 
   async function fetchReviews() {
@@ -156,7 +197,6 @@ export default function Profile() {
       commentedListings: uniqueListings,
       friendCount: friendCount || 0,
       claimedProperties: claimedProps || 0,
-      reviewCount: reviews.length,
     })
   }
 
@@ -250,18 +290,6 @@ export default function Profile() {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  function StarRating({ value, onChange, readonly = false }) {
-    return (
-      <div style={{ display: 'flex', gap: 4 }}>
-        {[1,2,3,4,5].map(s => (
-          <button key={s} onClick={() => !readonly && onChange && onChange(s)} style={{ background: 'none', border: 'none', cursor: readonly ? 'default' : 'pointer', fontSize: readonly ? 14 : 20, padding: 2 }}>
-            {s <= value ? '⭐' : '☆'}
-          </button>
-        ))}
-      </div>
-    )
-  }
-
   if (loading) return (<div style={{ minHeight: '100vh', background: '#f8fafc' }}><TopNav /><div style={styles.center}><div style={styles.spinner}/><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div></div>)
   if (!profile) return (<div style={{ minHeight: '100vh', background: '#f8fafc' }}><TopNav /><div style={styles.center}>Profile not found. <Link to="/listings">Go home</Link></div></div>)
 
@@ -300,15 +328,67 @@ export default function Profile() {
                 {isOwn && <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>✏️ Edit profile</button>}
                 {!isOwn && user && (
                   <>
+                    {/* Friend request button */}
                     {connectionStatus === null && <button onClick={sendFriendRequest} style={styles.actionBtn}>👥 Add Friend</button>}
                     {connectionStatus === 'sent' && <button disabled style={{ ...styles.actionBtn, opacity: 0.6, cursor: 'default' }}>⏳ Request Sent</button>}
                     {connectionStatus === 'pending' && <button onClick={acceptFriendRequest} style={{ ...styles.actionBtn, background: '#16a34a' }}>✅ Accept Request</button>}
                     {connectionStatus === 'accepted' && <button onClick={() => unfriend(connectionId)} style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#64748b' }}>👥 Friends</button>}
+
+                    {/* Link request button — only shown on agent/broker profiles */}
+                    {isPro && (
+                      <>
+                        {linkStatus === null && (
+                          <button onClick={() => setShowLinkForm(f => !f)} style={{ ...styles.actionBtn, background: '#f97316' }}>
+                            🔗 Request Link
+                          </button>
+                        )}
+                        {linkStatus === 'sent' && (
+                          <button disabled style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#64748b', cursor: 'default' }}>
+                            ⏳ Link Requested
+                          </button>
+                        )}
+                        {linkStatus === 'accepted' && (
+                          <button disabled style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', cursor: 'default' }}>
+                            🔗 Linked
+                          </button>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>
             </div>
+
+            {/* Link request form — inline below header */}
+            {showLinkForm && isPro && !isOwn && (
+              <div style={styles.linkForm}>
+                <div style={styles.linkFormTitle}>
+                  Request {profile.name?.split(' ')[0]} as your {profile.account_type === 'agent' ? 'agent' : 'mortgage broker'}
+                </div>
+                <textarea
+                  value={linkMessage}
+                  onChange={e => setLinkMessage(e.target.value)}
+                  placeholder={`Optional: introduce yourself or explain what you're looking for...`}
+                  style={{ ...styles.composerInput, marginBottom: 10 }}
+                  rows={3}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={sendLinkRequest}
+                    disabled={sendingLink}
+                    style={{ ...styles.postBtn, background: '#f97316', opacity: sendingLink ? 0.6 : 1 }}
+                  >
+                    {sendingLink ? 'Sending...' : 'Send Request'}
+                  </button>
+                  <button onClick={() => { setShowLinkForm(false); setLinkMessage('') }} style={styles.unfriendBtn}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {profile.bio ? <p style={styles.bio}>{profile.bio}</p> : isOwn ? <p style={styles.bioPlaceholder}>Add a bio so others know who you are.</p> : null}
+
             <div style={styles.statsRow}>
               <div style={styles.stat}><div style={styles.statNum}>{posts.length}</div><div style={styles.statLabel}>Updates</div></div>
               <div style={styles.stat}><div style={styles.statNum}>{friends.length}</div><div style={styles.statLabel}>Friends</div></div>
@@ -414,7 +494,6 @@ export default function Profile() {
             {/* Reviews */}
             {activeTab === 'reviews' && hasReviews && (
               <>
-                {/* Review summary */}
                 {reviews.length > 0 && (
                   <div style={styles.reviewSummary}>
                     <div style={styles.reviewAvgNum}>{avgRating}</div>
@@ -426,8 +505,6 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
-
-                {/* Write review button */}
                 {user && !isOwn && (
                   <div style={{ marginBottom: 16 }}>
                     {!showReviewForm ? (
@@ -457,7 +534,6 @@ export default function Profile() {
                     )}
                   </div>
                 )}
-
                 {reviewsLoading ? <div style={styles.loadingText}>Loading...</div> : reviews.length === 0 ? <EmptyState icon="⭐" title="No reviews yet" sub={isOwn ? 'Reviews from clients and community members will appear here.' : `Be the first to review ${profile.name?.split(' ')[0]}.`}/> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {reviews.map(review => (
@@ -624,9 +700,11 @@ const styles = {
   typeBadge: { fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 100 },
   metaText: { fontSize: 12, color: '#64748b' },
   editBtn: { padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', marginTop: 36 },
-  actionBtn: { padding: '8px 14px', background: '#1a6cf5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 36 },
+  actionBtn: { padding: '8px 14px', background: '#1a6cf5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 8 },
   bio: { fontSize: 14, color: '#334155', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
   bioPlaceholder: { fontSize: 13, color: '#94a3b8', fontStyle: 'italic' },
+  linkForm: { background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 12, padding: 16, marginBottom: 16, marginTop: 4 },
+  linkFormTitle: { fontSize: 13, fontWeight: 700, color: '#c2410c', marginBottom: 10 },
   statsRow: { display: 'flex', gap: 20, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' },
   stat: { textAlign: 'center' },
   statNum: { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: '#0f172a' },
