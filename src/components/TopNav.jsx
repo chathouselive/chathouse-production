@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
+import NotificationBell from './NotificationBell'
 
 function ChathouseLogo({ height = 32 }) {
   return (
@@ -45,6 +46,10 @@ export default function TopNav() {
         <div style={styles.right}>
           {user ? (
             <>
+              <NotificationBell />
+              <Link to="/messages" style={{ ...styles.messagesBtn, ...(loc.pathname === '/messages' ? styles.messagesBtnActive : {}) }}>
+                💬
+              </Link>
               {profile && (
                 <Link to={`/profile/${profile.id}`} style={styles.userBadge}>
                   {profile.photo_url ? (
@@ -74,12 +79,14 @@ export default function TopNav() {
 
 const styles = {
   nav: { position: 'sticky', top: 0, zIndex: 50, background: '#fff', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' },
-  inner: { maxWidth: 1160, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 24 },
+  inner: { maxWidth: 1160, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16 },
   logo: { display: 'flex', alignItems: 'center', textDecoration: 'none' },
   links: { display: 'flex', gap: 4, flex: 1 },
   link: { padding: '8px 14px', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#64748b', textDecoration: 'none' },
   active: { background: '#e8f0fe', color: '#1a6cf5' },
-  right: { display: 'flex', alignItems: 'center', gap: 12 },
+  right: { display: 'flex', alignItems: 'center', gap: 8 },
+  messagesBtn: { width: 36, height: 36, borderRadius: 8, background: '#f1f5f9', border: 'none', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
+  messagesBtnActive: { background: '#e8f0fe' },
   userBadge: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', borderRadius: 100, textDecoration: 'none' },
   avatar: { width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #1a6cf5, #f97316)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
