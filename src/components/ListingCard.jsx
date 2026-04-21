@@ -1,15 +1,41 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { getListingImage } from '../lib/streetView'
+import { useAuth } from '../lib/AuthContext'
+import { toggleListingLike, getListingLikeStatus } from '../lib/useListings'
 
 export default function ListingCard({ listing }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const isCommunity = listing.source === 'community'
   const img = getListingImage(listing)
   const priceStr = listing.type === 'rent'
     ? `$${Number(listing.price).toLocaleString()}/mo`
     : `$${Number(listing.price).toLocaleString()}`
 
-  const commentCount = listing.comment_count || listing.comments_count || 0
-  const likeCount = listing.likes_count || listing.likes || 0
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(listing.likes_count || 0)
+  const [liking, setLiking] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      getListingLikeStatus(listing.id, user.id).then(setLiked)
+    }
+  }, [listing.id, user])
+
+  async function handleLike(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user) { navigate('/signin'); return }
+    if (liking) return
+    setLiking(true)
+    const result = await toggleListingLike(listing.id, user.id, liked, likeCount)
+    setLiked(result.liked)
+    setLikeCount(result.count)
+    setLiking(false)
+  }
+
+  const commentCount = listing.comment_count || 0
 
   return (
     <Link to={`/listing/${listing.id}`} style={styles.link}>
@@ -46,7 +72,15 @@ export default function ListingCard({ listing }) {
           </div>
           <div style={styles.footer}>
             <span style={styles.footerStat}>💬 {commentCount} {commentCount === 1 ? 'comment' : 'comments'}</span>
-            <span style={styles.footerStat}>❤️ {likeCount}</span>
+            <button
+              onClick={handleLike}
+              style={{
+                ...styles.likeBtn,
+                color: liked ? '#ef4444' : '#94a3b8',
+              }}
+            >
+              {liked ? '❤️' : '🤍'} {likeCount}
+            </button>
           </div>
         </div>
       </div>
@@ -61,7 +95,6 @@ const styles = {
     borderRadius: 14,
     border: '1.5px solid #e2e8f0',
     overflow: 'hidden',
-    transition: 'all .2s',
     cursor: 'pointer',
   },
   imgWrap: { position: 'relative', height: 200, background: '#f1f5f9' },
@@ -82,8 +115,13 @@ const styles = {
   hood: { fontSize: 12, color: '#64748b', marginBottom: 10 },
   specs: { fontSize: 12, color: '#64748b', display: 'flex', gap: 6, marginBottom: 10 },
   footer: {
-    display: 'flex', gap: 14, paddingTop: 10,
-    borderTop: '1px solid #f1f5f9',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 10, borderTop: '1px solid #f1f5f9',
   },
   footerStat: { fontSize: 12, color: '#94a3b8', fontWeight: 600 },
+  likeBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: 12, fontWeight: 600, padding: 0,
+    display: 'flex', alignItems: 'center', gap: 4,
+  },
 }
