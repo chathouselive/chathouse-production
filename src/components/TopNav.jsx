@@ -36,6 +36,9 @@ export default function TopNav() {
 
         <div style={styles.links}>
           <Link to="/listings" style={{ ...styles.link, ...(loc.pathname === '/listings' ? styles.active : {}) }}>Listings</Link>
+          {['agent','broker'].includes(profile?.account_type) && (
+            <Link to="/dashboard" style={{ ...styles.link, ...(loc.pathname === '/dashboard' ? styles.active : {}) }}>Dashboard</Link>
+          )}
           {profile?.is_admin && (
             <Link to="/admin" style={{ ...styles.link, ...(loc.pathname.startsWith('/admin') ? styles.active : {}) }}>
               Admin
