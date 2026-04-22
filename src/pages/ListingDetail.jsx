@@ -50,13 +50,18 @@ export default function ListingDetail() {
   async function handleClaim() {
     if (!user) { navigate('/signin'); return }
     setClaiming(true)
-    const { error } = await supabase.from('listing_claims').insert({
-      listing_id: listing.id,
+    const { data, error } = await supabase.from('listing_claims').insert({
+      listing_id: Number(listing.id),
       user_id: user.id,
       status: 'pending',
-    })
+    }).select()
     setClaiming(false)
-    if (!error) setClaimSubmitted(true)
+    if (error) {
+      console.error('Claim error:', error)
+      alert('Claim failed: ' + error.message)
+    } else {
+      setClaimSubmitted(true)
+    }
   }
 
   if (loading) return (
