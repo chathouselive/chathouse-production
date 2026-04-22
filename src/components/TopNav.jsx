@@ -39,6 +39,12 @@ export default function TopNav() {
           {['agent','broker'].includes(profile?.account_type) && (
             <Link to="/dashboard" style={{ ...styles.link, ...(loc.pathname === '/dashboard' ? styles.active : {}) }}>Dashboard</Link>
           )}
+          {profile?.account_type === 'landlord' && (
+            <Link to="/my-property" style={{ ...styles.link, ...(loc.pathname === '/my-property' ? styles.active : {}) }}>My Property</Link>
+          )}
+          {profile?.account_type === 'management' && (
+            <Link to="/property-dashboard" style={{ ...styles.link, ...(loc.pathname === '/property-dashboard' ? styles.active : {}) }}>Property Dashboard</Link>
+          )}
           {profile?.is_admin && (
             <Link to="/admin" style={{ ...styles.link, ...(loc.pathname.startsWith('/admin') ? styles.active : {}) }}>
               Admin
