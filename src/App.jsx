@@ -9,6 +9,7 @@ import AddListing from './pages/AddListing'
 import Profile from './pages/Profile'
 import ProfileEdit from './pages/ProfileEdit'
 import Messages from './pages/Messages'
+import Dashboard from './pages/Dashboard'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminPhotos from './pages/admin/AdminPhotos'
@@ -45,6 +46,7 @@ export default function App() {
       <Route path="/listings" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/listing/:id" element={<ListingDetail />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
       <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
