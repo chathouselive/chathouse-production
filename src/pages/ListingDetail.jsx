@@ -23,6 +23,9 @@ export default function ListingDetail() {
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [claiming, setClaiming] = useState(false)
   const [claimSubmitted, setClaimSubmitted] = useState(false)
+  const [showClaimForm, setShowClaimForm] = useState(false)
+  const [claimDoc, setClaimDoc] = useState(null)
+  const [claimDocName, setClaimDocName] = useState('')
 
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
@@ -53,15 +56,32 @@ export default function ListingDetail() {
     if (!listing?.id) { alert('Listing not loaded yet'); return }
     setClaiming(true)
     try {
+      let docUrl = null
+
+      // Upload verification document if provided
+      if (claimDoc) {
+        const ext = claimDoc.name.split('.').pop()
+        const path = `claims/${user.id}/${listing.id}-${Date.now()}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('photo-submissions')
+          .upload(path, claimDoc)
+        if (!uploadErr) {
+          const { data } = supabase.storage.from('photo-submissions').getPublicUrl(path)
+          docUrl = data.publicUrl
+        }
+      }
+
       const { error } = await supabase.from('listing_claims').insert({
         listing_id: Number(listing.id),
         user_id: user.id,
         status: 'pending',
+        ...(docUrl && { notes: docUrl }),
       })
       if (error) {
         alert('Claim failed: ' + error.message)
       } else {
         setClaimSubmitted(true)
+        setShowClaimForm(false)
       }
     } catch (err) {
       alert('Unexpected error: ' + err.message)
@@ -151,19 +171,48 @@ export default function ListingDetail() {
             <p style={styles.desc}>{listing.description}</p>
           )}
 
-          {/* Claim listing button — for landlords and property managers */}
+          {/* Claim listing — for landlords and property managers */}
           {user && ['landlord', 'management'].includes(profile?.account_type) && !listing.claimed_by && (
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 14 }}>
               {claimSubmitted ? (
-                <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+                <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
                   ✅ Claim submitted — we'll review and verify your ownership within 24–48 hours.
                 </div>
+              ) : !showClaimForm ? (
+                <div>
+                  <button onClick={() => setShowClaimForm(true)} style={{ padding: '10px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    🏠 Claim this listing
+                  </button>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Is this your property? Claim it to respond to comments and upload photos.</div>
+                </div>
               ) : (
-                <button onClick={handleClaim} disabled={claiming} style={{ padding: '10px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: claiming ? 'default' : 'pointer', opacity: claiming ? 0.6 : 1 }}>
-                  {claiming ? 'Submitting...' : '🏠 Claim this listing'}
-                </button>
+                <div style={{ padding: 16, background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#3b0764', marginBottom: 4 }}>🏠 Claim this listing</div>
+                  <div style={{ fontSize: 12, color: '#6d28d9', marginBottom: 12, lineHeight: 1.5 }}>
+                    Upload proof of ownership to speed up verification — lease agreement, deed, or utility bill. This is optional but recommended.
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <input
+                      type="file"
+                      id="claimDoc"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={e => { setClaimDoc(e.target.files[0]); setClaimDocName(e.target.files[0]?.name || '') }}
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="claimDoc" style={{ display: 'inline-block', padding: '8px 14px', background: '#fff', border: '1.5px solid #c4b5fd', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}>
+                      📎 {claimDocName || 'Upload verification document (optional)'}
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={handleClaim} disabled={claiming} style={{ padding: '9px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: claiming ? 'default' : 'pointer', opacity: claiming ? 0.6 : 1 }}>
+                      {claiming ? 'Submitting...' : 'Submit Claim'}
+                    </button>
+                    <button onClick={() => { setShowClaimForm(false); setClaimDoc(null); setClaimDocName('') }} style={{ padding: '9px 14px', background: '#f1f5f9', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Is this your property? Claim it to respond to comments and upload photos.</div>
             </div>
           )}
           {listing.claimed_by && (
