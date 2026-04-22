@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import TopNav from '../components/TopNav'
 import { useAuth } from '../lib/AuthContext'
 import { updateMyProfile, uploadProfilePhoto } from '../lib/useProfile'
+import { supabase } from '../lib/supabase'
 
 export default function ProfileEdit() {
   const { profile, refreshProfile } = useAuth()
@@ -20,6 +21,8 @@ export default function ProfileEdit() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [photoPreview, setPhotoPreview] = useState(null)
+  const [liveAvgRating, setLiveAvgRating] = useState(null)
+  const [reviewCount, setReviewCount] = useState(0)
 
   useEffect(() => {
     if (profile) {
@@ -30,9 +33,29 @@ export default function ProfileEdit() {
       setLookingFor(profile.looking_for || '')
       setCompany(profile.company || '')
       setLicenseNumber(profile.license_number || '')
-      setHighlights(profile.highlights || {})
+      // Strip avg_rating from highlights so it's never saved manually
+      const { avg_rating, ...rest } = profile.highlights || {}
+      setHighlights(rest)
+      if (['agent', 'broker', 'management'].includes(profile.account_type)) {
+        fetchLiveRating(profile.id)
+      }
     }
   }, [profile])
+
+  async function fetchLiveRating(userId) {
+    const { data } = await supabase
+      .from('reviews')
+      .select('rating')
+      .eq('reviewee_id', userId)
+    if (data && data.length > 0) {
+      const avg = data.reduce((s, r) => s + r.rating, 0) / data.length
+      setLiveAvgRating(Math.round(avg * 10) / 10)
+      setReviewCount(data.length)
+    } else {
+      setLiveAvgRating(null)
+      setReviewCount(0)
+    }
+  }
 
   function handlePhotoChange(e) {
     const f = e.target.files[0]
@@ -58,6 +81,9 @@ export default function ProfileEdit() {
         photoUrl = url
       }
 
+      // Never save avg_rating to highlights
+      const { avg_rating, ...cleanHighlights } = highlights
+
       const updates = {
         name,
         city,
@@ -66,7 +92,7 @@ export default function ProfileEdit() {
         looking_for: lookingFor || null,
         company: company || null,
         license_number: licenseNumber || null,
-        highlights,
+        highlights: cleanHighlights,
         photo_url: photoUrl,
       }
 
@@ -164,13 +190,11 @@ export default function ProfileEdit() {
                 <Field label="Deals closed">
                   <input value={highlights.deals_closed || ''} onChange={e => updateHighlight('deals_closed', e.target.value)} style={styles.input} placeholder="e.g. 200+"/>
                 </Field>
-                <Field label="Avg rating">
-                  <input value={highlights.avg_rating || ''} onChange={e => updateHighlight('avg_rating', e.target.value)} style={styles.input} placeholder="e.g. 4.9 / 5.0"/>
+                <Field label="Specialty">
+                  <input value={highlights.specialty || ''} onChange={e => updateHighlight('specialty', e.target.value)} style={styles.input} placeholder="e.g. First-Time Buyers"/>
                 </Field>
               </div>
-              <Field label="Specialty">
-                <input value={highlights.specialty || ''} onChange={e => updateHighlight('specialty', e.target.value)} style={styles.input} placeholder="e.g. First-Time Buyers"/>
-              </Field>
+              <RatingReadOnly avgRating={liveAvgRating} reviewCount={reviewCount}/>
             </>
           )}
 
@@ -192,22 +216,33 @@ export default function ProfileEdit() {
                 </Field>
               </div>
               <div style={styles.row2}>
-                <Field label="Avg rating">
-                  <input value={highlights.avg_rating || ''} onChange={e => updateHighlight('avg_rating', e.target.value)} style={styles.input} placeholder="e.g. 4.8 / 5.0"/>
-                </Field>
                 <Field label="Avg close time">
                   <input value={highlights.avg_close_time || ''} onChange={e => updateHighlight('avg_close_time', e.target.value)} style={styles.input} placeholder="e.g. 21 Days"/>
                 </Field>
+                <Field label="Loan types">
+                  <input value={highlights.loan_types || ''} onChange={e => updateHighlight('loan_types', e.target.value)} style={styles.input} placeholder="e.g. Conv · FHA · VA"/>
+                </Field>
               </div>
-              <Field label="Loan types">
-                <input value={highlights.loan_types || ''} onChange={e => updateHighlight('loan_types', e.target.value)} style={styles.input} placeholder="e.g. Conv · FHA · VA"/>
-              </Field>
+              <RatingReadOnly avgRating={liveAvgRating} reviewCount={reviewCount}/>
             </>
           )}
 
-          {(profile.account_type === 'landlord' || profile.account_type === 'management') && (
+          {profile.account_type === 'management' && (
             <>
-              <SectionTitle>{profile.account_type === 'landlord' ? 'Landlord info' : 'Property Management info'}</SectionTitle>
+              <SectionTitle>Property Management info</SectionTitle>
+              <Field label="Company name (optional)">
+                <input value={company} onChange={e => setCompany(e.target.value)} style={styles.input} placeholder="Leave blank if individual"/>
+              </Field>
+              <RatingReadOnly avgRating={liveAvgRating} reviewCount={reviewCount}/>
+              <div style={styles.note}>
+                💡 Claim your buildings in the Listings feed to show them on your profile. Feature coming soon.
+              </div>
+            </>
+          )}
+
+          {profile.account_type === 'landlord' && (
+            <>
+              <SectionTitle>Landlord info</SectionTitle>
               <Field label="Company name (optional)">
                 <input value={company} onChange={e => setCompany(e.target.value)} style={styles.input} placeholder="Leave blank if individual"/>
               </Field>
@@ -226,6 +261,27 @@ export default function ProfileEdit() {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function RatingReadOnly({ avgRating, reviewCount }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 }}>
+        Avg Rating
+      </label>
+      <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {avgRating ? (
+          <>
+            <span style={{ fontSize: 18, fontWeight: 800, color: '#d97706' }}>{avgRating} ⭐</span>
+            <span style={{ fontSize: 13, color: '#64748b' }}>based on {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
+          </>
+        ) : (
+          <span style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>No reviews yet — your rating will appear here once clients leave reviews.</span>
+        )}
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8', background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>🔒 Set by reviews</span>
       </div>
     </div>
   )
@@ -256,23 +312,10 @@ const styles = {
   photoRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 },
   photoPreview: { width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 },
   photoImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  photoInitial: {
-    width: '100%', height: '100%',
-    background: 'linear-gradient(135deg, #1a6cf5, #f97316)',
-    color: '#fff', fontSize: 30, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  fileBtn: {
-    display: 'inline-block', padding: '8px 14px',
-    border: '1.5px solid #e2e8f0', borderRadius: 8,
-    fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', background: '#fff',
-  },
+  photoInitial: { width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a6cf5, #f97316)', color: '#fff', fontSize: 30, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  fileBtn: { display: 'inline-block', padding: '8px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', background: '#fff' },
   row2: { display: 'flex', gap: 12 },
-  input: {
-    width: '100%', padding: '10px 12px',
-    border: '1.5px solid #e2e8f0', borderRadius: 10,
-    fontSize: 14, color: '#0f172a', outline: 'none', background: '#fff',
-  },
+  input: { width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, color: '#0f172a', outline: 'none', background: '#fff' },
   note: { padding: 12, background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, fontSize: 12, color: '#92400e', lineHeight: 1.5 },
   error: { marginTop: 16, padding: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 13 },
   submit: { marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' },
