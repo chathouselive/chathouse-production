@@ -10,6 +10,8 @@ import Profile from './pages/Profile'
 import ProfileEdit from './pages/ProfileEdit'
 import Messages from './pages/Messages'
 import Dashboard from './pages/Dashboard'
+import LandlordDashboard from './pages/LandlordDashboard'
+import ManagerDashboard from './pages/ManagerDashboard'
 import AdminOverview from './pages/admin/AdminOverview'
 import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminPhotos from './pages/admin/AdminPhotos'
@@ -47,6 +49,8 @@ export default function App() {
       <Route path="/listing/:id" element={<ListingDetail />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/my-property" element={<ProtectedRoute><LandlordDashboard /></ProtectedRoute>} />
+      <Route path="/property-dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
       <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
       <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
