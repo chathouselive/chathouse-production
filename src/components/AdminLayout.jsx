@@ -1,23 +1,20 @@
 import { NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import TopNav from './TopNav'
-
 export default function AdminLayout({ children }) {
   const { profile, loading } = useAuth()
   const loc = useLocation()
-
   if (loading) return null
   if (!profile?.is_admin) return <Navigate to="/" replace />
-
   const links = [
     { to: '/admin', label: 'Overview', icon: '📊', end: true },
     { to: '/admin/verifications', label: 'Verifications', icon: '✓' },
     { to: '/admin/photos', label: 'Photo Queue', icon: '📷' },
+    { to: '/admin/claims', label: 'Claims', icon: '🏠' },
     { to: '/admin/users', label: 'Users', icon: '👥' },
     { to: '/admin/listings', label: 'Listings', icon: '🏘️' },
     { to: '/admin/sync', label: 'Sync', icon: '🔄' },
   ]
-
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <TopNav />
@@ -50,7 +47,6 @@ export default function AdminLayout({ children }) {
     </div>
   )
 }
-
 const styles = {
   shell: {
     maxWidth: 1280,
