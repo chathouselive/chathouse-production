@@ -182,6 +182,22 @@ function AgentDashboard({ profile, user }) {
           )}
         </div>
 
+        {/* Zip Code Advertising — placeholder */}
+        <div style={styles.section}>
+          <div style={{ ...styles.zipAdCard, background: 'linear-gradient(135deg, #dcfce7, #d1fae5)', border: '1.5px solid #86efac' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d', marginBottom: 4 }}>📍 Zip Code Advertising</div>
+                <div style={{ fontSize: 13, color: '#166534', maxWidth: 340, lineHeight: 1.5 }}>Own a zip code and get featured placement when buyers browse listings in that area.</div>
+                <div style={{ fontSize: 11, color: '#16a34a', marginTop: 6, fontStyle: 'italic' }}>Note: Featured placement is paid — not an editorial recommendation.</div>
+              </div>
+              <button style={{ ...styles.zipAdBtn, background: '#16a34a' }} disabled>
+                Coming Soon
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Recent Activity */}
         {recentActivity.length > 0 && (
           <div style={styles.section}>
