@@ -15,11 +15,13 @@ import { toggleListingLike, getListingLikeStatus } from '../lib/useListings'
 export default function ListingDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { listing, loading } = useListing(id)
   const { comments, loading: loadingComments, postComment, toggleLike } = useComments(id)
   const { status: verificationStatus, submitVerification } = useVerification(id)
   const [showVerifyModal, setShowVerifyModal] = useState(false)
+  const [claiming, setClaiming] = useState(false)
+  const [claimSubmitted, setClaimSubmitted] = useState(false)
 
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
@@ -43,6 +45,20 @@ export default function ListingDetail() {
     setLiked(result.liked)
     setLikeCount(result.count)
     setLiking(false)
+  }
+
+  async function handleClaim() {
+    if (!user) { navigate('/signin'); return }
+    setClaiming(true)
+    // Insert a claim request into photo_submissions as a claim request
+    await supabase.from('photo_submissions').insert({
+      listing_id: listing.id,
+      user_id: user.id,
+      type: 'claim',
+      status: 'pending',
+    })
+    setClaiming(false)
+    setClaimSubmitted(true)
   }
 
   if (loading) return (
@@ -124,6 +140,27 @@ export default function ListingDetail() {
 
           {listing.description && (
             <p style={styles.desc}>{listing.description}</p>
+          )}
+
+          {/* Claim listing button — for landlords and property managers */}
+          {user && ['landlord', 'management'].includes(profile?.account_type) && !listing.claimed_by && (
+            <div style={{ marginTop: 12 }}>
+              {claimSubmitted ? (
+                <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+                  ✅ Claim submitted — we'll review and verify your ownership within 24–48 hours.
+                </div>
+              ) : (
+                <button onClick={handleClaim} disabled={claiming} style={{ padding: '10px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: claiming ? 'default' : 'pointer', opacity: claiming ? 0.6 : 1 }}>
+                  {claiming ? 'Submitting...' : '🏠 Claim this listing'}
+                </button>
+              )}
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>Is this your property? Claim it to respond to comments and upload photos.</div>
+            </div>
+          )}
+          {listing.claimed_by && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, fontSize: 12, color: '#16a34a', fontWeight: 600, display: 'inline-block' }}>
+              ✅ Claimed by owner
+            </div>
           )}
 
           {isIDX && (
