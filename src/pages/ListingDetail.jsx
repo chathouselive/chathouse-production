@@ -10,6 +10,7 @@ import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
 import { getListingImage } from '../lib/streetView'
 import { useAuth } from '../lib/AuthContext'
+import { supabase } from '../lib/supabase'
 import { toggleListingLike, getListingLikeStatus } from '../lib/useListings'
 
 export default function ListingDetail() {
