@@ -50,15 +50,13 @@ export default function ListingDetail() {
   async function handleClaim() {
     if (!user) { navigate('/signin'); return }
     setClaiming(true)
-    // Insert a claim request into photo_submissions as a claim request
-    await supabase.from('photo_submissions').insert({
+    const { error } = await supabase.from('listing_claims').insert({
       listing_id: listing.id,
       user_id: user.id,
-      type: 'claim',
       status: 'pending',
     })
     setClaiming(false)
-    setClaimSubmitted(true)
+    if (!error) setClaimSubmitted(true)
   }
 
   if (loading) return (
