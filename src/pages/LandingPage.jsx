@@ -30,7 +30,8 @@ const FEATURED_LISTINGS = [
     address: '312 Palisade Ave',
     hood: 'Englewood, NJ',
     beds: '4', baths: '2', sqft: '2,100',
-    tag: 'For Sale', tagColor: '#1a6cf5',
+    tag: 'For Sale', tagColor: '#1A6FE8',
+    comments: 8, risks: 4, riskLevel: 'high',
   },
   {
     id: 43,
@@ -40,6 +41,7 @@ const FEATURED_LISTINGS = [
     hood: 'Downtown Jersey City, NJ',
     beds: '1', baths: '1', sqft: '680',
     tag: 'For Rent', tagColor: '#f97316',
+    comments: 12, risks: 2, riskLevel: 'medium',
   },
   {
     id: 44,
@@ -49,6 +51,7 @@ const FEATURED_LISTINGS = [
     hood: 'Hoboken, NJ',
     beds: '1', baths: '1', sqft: '750',
     tag: 'For Rent', tagColor: '#f97316',
+    comments: 21, risks: 1, riskLevel: 'low',
   },
   {
     id: 1,
@@ -58,20 +61,39 @@ const FEATURED_LISTINGS = [
     hood: 'Weehawken, NJ',
     beds: '1', baths: '1', sqft: '572',
     tag: 'For Rent', tagColor: '#f97316',
+    comments: 5, risks: 0, riskLevel: 'low',
   },
 ]
 
+const RISK_ITEMS = [
+  { label: 'Knob & tube wiring (built 1924)', level: 'High', cost: '$8–18k', color: '#dc2626', bg: '#fef2f2' },
+  { label: 'Underground oil tank risk', level: 'High', cost: '$3–15k', color: '#dc2626', bg: '#fef2f2' },
+  { label: 'Lead paint likelihood', level: 'Medium', cost: '$1–4k', color: '#d97706', bg: '#fefce8' },
+  { label: 'Flood zone (FEMA Zone X)', level: 'Low', cost: null, color: '#16a34a', bg: '#f0fdf4' },
+  { label: 'Asbestos risk', level: 'Medium', cost: '$2–6k', color: '#d97706', bg: '#fefce8' },
+]
+
+function RiskBadge({ level }) {
+  const colors = { high: { bg: '#fef2f2', color: '#991b1b' }, medium: { bg: '#fef9c3', color: '#854d0e' }, low: { bg: '#f0fdf4', color: '#166534' } }
+  const c = colors[level] || colors.low
+  return <span style={{ ...styles.riskBadge, background: c.bg, color: c.color }}>{level === 'high' ? '4 risks' : level === 'medium' ? '2 risks' : '1 risk'}</span>
+}
+
 export default function LandingPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: "'Georgia', var(--serif), serif" }}>
 
-      {/* Top bar */}
-      <header style={styles.topbar}>
-        <div style={styles.topbarInner}>
-          <ChathouseLogo height={40} />
+      {/* Sticky nav */}
+      <header style={styles.nav}>
+        <div style={styles.navInner}>
+          <ChathouseLogo height={38} />
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+            <Link to="/listings" style={styles.navLink}>Listings</Link>
+            <Link to="/signup" style={styles.navLink}>For agents</Link>
+          </nav>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/signin" style={styles.signInBtn}>Sign in</Link>
-            <Link to="/signup" style={styles.signUpBtn}>Sign up →</Link>
+            <Link to="/signin" style={styles.btnGhost}>Sign in</Link>
+            <Link to="/signup" style={styles.btnPrimary}>Get started free</Link>
           </div>
         </div>
       </header>
@@ -79,73 +101,174 @@ export default function LandingPage() {
       {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <span style={styles.eyebrow}>🏘️ Community real estate</span>
+          <div style={styles.eyebrow}>
+            <span style={styles.eyebrowDot}/>
+            Free for buyers &amp; renters — always
+          </div>
           <h1 style={styles.heroTitle}>
-            Know what's wrong with any address —<br/>
-            <em style={{ color: '#1a6cf5', fontStyle: 'normal', background: 'linear-gradient(135deg, #1a6cf5, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>before you sign.</em>
+            Know what you're<br/>
+            <span style={styles.heroAccent}>buying before you buy.</span>
           </h1>
           <p style={styles.heroSub}>
-            Read what verified tenants, neighbors, and past buyers have to say — before you sign anything.
+            Enter an address and we use the home's age, features, permits, and sales history to predict likely issues and what they may cost to fix.
           </p>
-          <div style={styles.heroButtons}>
-            <Link to="/signup" style={styles.ctaPrimary}>Sign up free →</Link>
-            <Link to="/signin" style={styles.ctaSecondary}>Sign in</Link>
+          <div style={styles.heroActions}>
+            <Link to="/signup" style={styles.btnHero}>Search an address free →</Link>
+            <Link to="/signin" style={styles.btnHeroGhost}>Sign in</Link>
           </div>
-          <p style={styles.heroNote}>Free for buyers, renters, and neighbors · Always will be</p>
+          <div style={styles.trustRow}>
+            {['44 live listings', 'Verified community reviews', 'AI risk reports', 'Free for buyers'].map((t, i) => (
+              <div key={i} style={styles.trustItem}>
+                <span style={{ ...styles.trustDot, background: i === 0 ? '#16a34a' : i === 2 ? '#f97316' : '#1A6FE8' }}/>
+                {t}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* How it works */}
       <section style={styles.howSection}>
         <div style={styles.sectionInner}>
+          <div style={styles.sectionLabel}>How it works</div>
+          <h2 style={styles.h2}>Three steps to know the truth about any home</h2>
           <div style={styles.howGrid}>
-            <HowCard num="1" title="Search any address" body="Find real listings or add buildings not yet on Chathouse. Every address is comment-enabled."/>
-            <HowCard num="2" title="Read honest comments" body="Verified tenants, neighbors, and past buyers share what they actually know — the good and the bad."/>
-            <HowCard num="3" title="Sign with confidence" body="Make your next rental or home purchase knowing what you're walking into. No staged photos. No sales spin."/>
+            {[
+              { num: '01', title: 'Search any address', body: 'Find any listing or add a building not yet on Chathouse. Every address is comment-enabled.' },
+              { num: '02', title: 'Read honest reviews', body: 'Verified tenants, neighbors, and past buyers share what they actually know — the good and the bad.' },
+              { num: '03', title: 'Get the AI risk report', body: 'For $29, get a full AI-generated inspection risk report — what could go wrong and what it may cost.' },
+            ].map((s, i) => (
+              <div key={i} style={styles.howCard}>
+                <div style={styles.howNum}>{s.num}</div>
+                <h3 style={styles.howTitle}>{s.title}</h3>
+                <p style={styles.howBody}>{s.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Live listings slider */}
-      <section style={styles.sliderSection}>
+      {/* Live listings */}
+      <section style={styles.listingsSection}>
         <div style={styles.sectionInner}>
-          <div style={{ marginBottom: 28 }}>
-            <span style={styles.eyebrow}>Live listings</span>
-            <h2 style={styles.h2}>See what's on Chathouse right now</h2>
-            <p style={styles.sectionSub}>
-              A sample of real listings with community transparency built in.{' '}
-              <Link to="/signup" style={{ color: '#1a6cf5', fontWeight: 700, textDecoration: 'none' }}>
-                Sign up free
-              </Link>{' '}
-              to see the full catalog.
-            </p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
+            <div>
+              <div style={styles.sectionLabel}>Live listings</div>
+              <h2 style={{ ...styles.h2, marginBottom: 6 }}>Real homes. Real community insights.</h2>
+              <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6 }}>
+                Every listing shows honest comments from past tenants and buyers.{' '}
+                <Link to="/signup" style={{ color: '#1A6FE8', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link> to see all.
+              </p>
+            </div>
+            <Link to="/listings" style={{ ...styles.btnGhost, fontSize: 13, whiteSpace: 'nowrap' }}>View all listings →</Link>
           </div>
 
-          {/* Horizontal scroll container */}
           <div style={styles.sliderWrap}>
             <div style={styles.slider}>
               {FEATURED_LISTINGS.map(l => (
-                <Link key={l.id} to={`/listing/${l.id}`} style={styles.sliderCard}>
-                  <div style={styles.sliderImgWrap}>
-                    <img src={l.img} alt={l.address} style={styles.sliderImg}/>
-                    <div style={{ ...styles.sliderTag, background: l.tagColor }}>{l.tag}</div>
+                <Link key={l.id} to={`/listing/${l.id}`} style={styles.listingCard}>
+                  <div style={styles.cardImgWrap}>
+                    <img src={l.img} alt={l.address} style={styles.cardImg}/>
+                    <div style={{ ...styles.cardTag, background: l.tagColor }}>{l.tag}</div>
+                    {l.risks > 0 && (
+                      <div style={{ ...styles.cardRiskBadge, ...(l.riskLevel === 'high' ? { background: '#fef2f2', color: '#991b1b' } : l.riskLevel === 'medium' ? { background: '#fef9c3', color: '#854d0e' } : { background: '#f0fdf4', color: '#166534' }) }}>
+                        {l.risks} risk{l.risks > 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
-                  <div style={styles.sliderBody}>
-                    <div style={styles.sliderPrice}>{l.price}</div>
-                    <div style={styles.sliderAddress}>{l.address}</div>
-                    <div style={styles.sliderHood}>📍 {l.hood}</div>
-                    <div style={styles.sliderSpecs}>{l.beds} bd · {l.baths} ba · {l.sqft} sqft</div>
-                    <div style={styles.sliderCta}>View listing + community comments →</div>
+                  <div style={styles.cardBody}>
+                    <div style={styles.cardPrice}>{l.price}</div>
+                    <div style={styles.cardAddr}>{l.address}</div>
+                    <div style={styles.cardHood}>📍 {l.hood}</div>
+                    <div style={styles.cardSpecs}>{l.beds} bd · {l.baths} ba · {l.sqft} sqft</div>
+                    <div style={styles.cardFooter}>
+                      <span style={styles.cardComments}>💬 {l.comments} comments</span>
+                      <span style={styles.cardCta}>View →</span>
+                    </div>
                   </div>
                 </Link>
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          <div style={{ textAlign: 'center', marginTop: 28 }}>
-            <Link to="/signup" style={styles.ctaPrimary}>
-              See all listings — sign up free →
-            </Link>
+      {/* AI Risk Report — dark section */}
+      <section style={styles.aiSection}>
+        <div style={styles.aiInner}>
+          <div style={styles.aiLeft}>
+            <div style={styles.aiEyebrow}>AI property intelligence</div>
+            <h2 style={styles.aiTitle}>
+              Know the risks<br/>before you sign.
+            </h2>
+            <p style={styles.aiSub}>
+              We analyze the home's age, permits, construction type, flood zone, and sales history to surface what could go wrong — and what it might cost you.
+            </p>
+            <div style={styles.aiFeatures}>
+              {['Built year & construction type', 'Permit history & violations', 'Flood zone & environmental risk', 'Underground oil tank likelihood', 'Knob & tube / lead paint / asbestos'].map((f, i) => (
+                <div key={i} style={styles.aiFeatureRow}>
+                  <span style={styles.aiCheck}>✓</span>
+                  <span style={{ fontSize: 14, color: '#94a3b8' }}>{f}</span>
+                </div>
+              ))}
+            </div>
+            <div style={styles.aiDisclaimer}>
+              This report does not replace a professional home inspection. Share it with your inspector or landlord before you move in.
+            </div>
+          </div>
+
+          <div style={styles.aiRight}>
+            <div style={styles.aiCard}>
+              <div style={styles.aiCardHeader}>
+                <div>
+                  <div style={styles.aiCardTitle}>312 Palisade Ave</div>
+                  <div style={styles.aiCardAddr}>Englewood, NJ · Built 1924 · 4 risks identified</div>
+                </div>
+                <div style={styles.aiCardBadge}>Sample report</div>
+              </div>
+              <div style={styles.aiRiskList}>
+                {RISK_ITEMS.map((r, i) => (
+                  <div key={i} style={styles.aiRiskRow}>
+                    <span style={styles.aiRiskLabel}>{r.label}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <span style={{ ...styles.aiRiskLevel, background: r.bg, color: r.color }}>{r.level}</span>
+                      {r.cost && <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{r.cost}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={styles.aiCardCta}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 2 }}>Full AI inspection report</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#f97316' }}>$29 one-time</div>
+                </div>
+                <Link to="/signup" style={styles.aiGetBtn}>Get report →</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section style={styles.featuresSection}>
+        <div style={styles.sectionInner}>
+          <div style={styles.sectionLabel}>Why Chathouse</div>
+          <h2 style={styles.h2}>Everything a smart buyer needs</h2>
+          <div style={styles.featuresGrid}>
+            {[
+              { icon: '👥', title: 'Verified community reviews', desc: 'Honest feedback from past tenants, neighbors, and buyers — not curated testimonials or staged photos.' },
+              { icon: '⚡', title: 'AI risk prediction', desc: 'Surface likely issues before inspection — saving you thousands in unexpected costs after closing.' },
+              { icon: '🤝', title: 'Verified agents & brokers', desc: 'Connect with real estate pros who have genuine community reviews — not paid rankings.' },
+              { icon: '🔓', title: 'Free for buyers forever', desc: 'Buyers and renters always have free access. Agents and brokers pay a subscription to grow their business.' },
+              { icon: '🏢', title: 'Landlord transparency', desc: 'Property owners can claim and manage their listings, respond to comments, and upload photos.' },
+              { icon: '🛡️', title: 'IDX & Fair Housing compliant', desc: 'Built with MLS data standards and Fair Housing Act compliance baked into every listing.' },
+            ].map((f, i) => (
+              <div key={i} style={styles.featCard}>
+                <div style={styles.featIcon}>{f.icon}</div>
+                <h3 style={styles.featTitle}>{f.title}</h3>
+                <p style={styles.featDesc}>{f.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -153,23 +276,25 @@ export default function LandingPage() {
       {/* Testimonial */}
       <section style={styles.testimonialSection}>
         <div style={styles.testimonialInner}>
-          <div style={styles.quote}>"</div>
+          <div style={styles.testimonialQuote}>"</div>
           <p style={styles.testimonialText}>
-            I almost signed a lease on a Park Slope 2BR. Two verified past tenants warned me about chronic mold.
-            Saved me 24 months of misery.
+            I almost signed a lease on a Park Slope 2BR. Two verified past tenants warned me about chronic mold issues. Saved me 24 months of misery.
           </p>
-          <p style={styles.testimonialAuthor}>— Anonymous Chathouse member</p>
+          <p style={styles.testimonialAuthor}>— Verified Chathouse member</p>
         </div>
       </section>
 
       {/* Final CTA */}
       <section style={styles.finalCta}>
         <div style={styles.sectionInner}>
-          <h2 style={{ ...styles.h2, color: '#fff' }}>Real estate, without the lies.</h2>
-          <p style={{ ...styles.sectionSub, color: 'rgba(255,255,255,0.8)', marginBottom: 24 }}>
-            Join the community that's making housing transparent.
+          <h2 style={styles.finalCtaTitle}>Real estate, without the lies.</h2>
+          <p style={styles.finalCtaSub}>
+            Join the community making housing transparent — free for every buyer and renter.
           </p>
-          <Link to="/signup" style={styles.ctaWhite}>Get started — it's free →</Link>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/signup" style={styles.btnFinalPrimary}>Search listings free →</Link>
+            <Link to="/signup" style={styles.btnFinalOrange}>Get AI risk report — $29</Link>
+          </div>
         </div>
       </section>
 
@@ -178,67 +303,102 @@ export default function LandingPage() {
   )
 }
 
-function HowCard({ num, title, body }) {
-  return (
-    <div style={styles.howCard}>
-      <div style={styles.howNum}>{num}</div>
-      <h3 style={styles.howTitle}>{title}</h3>
-      <p style={styles.howBody}>{body}</p>
-    </div>
-  )
-}
-
 const styles = {
-  topbar: { background: '#fff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 },
-  topbarInner: { maxWidth: 1160, margin: '0 auto', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  signInBtn: { padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#475569', textDecoration: 'none' },
-  signUpBtn: { padding: '8px 16px', background: '#1a6cf5', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' },
-  hero: { background: 'linear-gradient(135deg, #e8f0fe 0%, #fff 50%, #fff3e8 100%)', padding: '80px 20px 100px' },
-  heroInner: { maxWidth: 900, margin: '0 auto', textAlign: 'center' },
-  eyebrow: { display: 'inline-block', padding: '5px 14px', background: 'rgba(26,108,245,0.1)', color: '#1a6cf5', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, borderRadius: 100, marginBottom: 20 },
-  heroTitle: { fontFamily: 'var(--serif)', fontSize: 58, fontWeight: 800, lineHeight: 1.1, color: '#0f172a', marginBottom: 18, letterSpacing: -1 },
-  heroSub: { fontSize: 18, color: '#64748b', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 32px' },
-  heroButtons: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' },
-  ctaPrimary: { padding: '14px 28px', background: '#1a6cf5', color: '#fff', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 8px 20px rgba(26,108,245,0.3)' },
-  ctaSecondary: { padding: '14px 28px', background: '#fff', color: '#0f172a', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none' },
-  ctaWhite: { padding: '14px 28px', background: '#fff', color: '#1a6cf5', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none', display: 'inline-block', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' },
-  heroNote: { fontSize: 12, color: '#94a3b8', marginTop: 18 },
-  howSection: { padding: '80px 20px', background: '#fff' },
+  // Nav
+  nav: { background: '#fff', borderBottom: '1px solid #e8edf2', position: 'sticky', top: 0, zIndex: 50 },
+  navInner: { maxWidth: 1160, margin: '0 auto', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 },
+  navLink: { fontSize: 14, color: '#475569', textDecoration: 'none', fontWeight: 500 },
+  btnGhost: { padding: '8px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#334155', textDecoration: 'none' },
+  btnPrimary: { padding: '8px 18px', background: '#1A6FE8', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' },
+
+  // Hero
+  hero: { background: 'linear-gradient(160deg, #EEF4FD 0%, #fff 55%, #FFF4EC 100%)', padding: '88px 24px 96px' },
+  heroInner: { maxWidth: 860, margin: '0 auto', textAlign: 'center' },
+  eyebrow: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: '#1A6FE8', background: '#e8f0fe', padding: '5px 14px', borderRadius: 100, marginBottom: 24, letterSpacing: 0.3 },
+  eyebrowDot: { display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#f97316', flexShrink: 0 },
+  heroTitle: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 56, fontWeight: 900, color: '#0F1F3D', lineHeight: 1.1, marginBottom: 20, letterSpacing: -1 },
+  heroAccent: { color: '#1A6FE8' },
+  heroSub: { fontSize: 18, color: '#4a5568', lineHeight: 1.7, maxWidth: 600, margin: '0 auto 32px' },
+  heroActions: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 36 },
+  btnHero: { padding: '14px 30px', background: '#1A6FE8', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 20px rgba(26,111,232,0.28)' },
+  btnHeroGhost: { padding: '14px 24px', background: '#fff', color: '#0F1F3D', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 15, fontWeight: 600, textDecoration: 'none' },
+  trustRow: { display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' },
+  trustItem: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#64748b', fontWeight: 500 },
+  trustDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0 },
+
+  // How it works
+  howSection: { padding: '80px 24px', background: '#fff' },
   sectionInner: { maxWidth: 1100, margin: '0 auto' },
-  h2: { fontFamily: 'var(--serif)', fontSize: 36, fontWeight: 700, color: '#0f172a', marginBottom: 10 },
-  sectionSub: { fontSize: 16, color: '#64748b', lineHeight: 1.6, maxWidth: 540, margin: '0 auto' },
-  howGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 },
-  howCard: { padding: 28, background: '#f8fafc', borderRadius: 16, border: '1.5px solid #e2e8f0' },
-  howNum: { width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1a6cf5, #f97316)', color: '#fff', fontSize: 18, fontWeight: 800, fontFamily: 'var(--serif)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  howTitle: { fontFamily: 'var(--serif)', fontSize: 19, fontWeight: 700, color: '#0f172a', marginBottom: 8 },
-  howBody: { fontSize: 14, color: '#64748b', lineHeight: 1.65 },
+  sectionLabel: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f97316', marginBottom: 10 },
+  h2: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 34, fontWeight: 800, color: '#0F1F3D', marginBottom: 36, lineHeight: 1.2 },
+  howGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 },
+  howCard: { padding: 28, background: '#f8fafc', borderRadius: 16, border: '1px solid #e8edf2' },
+  howNum: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 36, fontWeight: 900, color: '#e2e8f0', marginBottom: 14, lineHeight: 1 },
+  howTitle: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 19, fontWeight: 700, color: '#0F1F3D', marginBottom: 10 },
+  howBody: { fontSize: 14, color: '#64748b', lineHeight: 1.7 },
 
-  // Slider
-  sliderSection: { padding: '80px 20px', background: '#f8fafc' },
-  sliderWrap: { overflowX: 'auto', paddingBottom: 12, marginLeft: -4, marginRight: -4 },
-  slider: { display: 'flex', gap: 16, paddingLeft: 4, paddingRight: 4, width: 'max-content' },
-  sliderCard: {
-    width: 280, flexShrink: 0,
-    background: '#fff', borderRadius: 16,
-    border: '1.5px solid #e2e8f0', overflow: 'hidden',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-    textDecoration: 'none', color: 'inherit',
-    display: 'block',
-  },
-  sliderImgWrap: { position: 'relative', height: 180 },
-  sliderImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  sliderTag: { position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 100, color: '#fff', fontSize: 11, fontWeight: 700 },
-  sliderBody: { padding: 16 },
-  sliderPrice: { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 2 },
-  sliderAddress: { fontSize: 13, color: '#334155', marginBottom: 2 },
-  sliderHood: { fontSize: 11, color: '#64748b', marginBottom: 8 },
-  sliderSpecs: { fontSize: 11, color: '#64748b', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' },
-  sliderCta: { fontSize: 12, color: '#1a6cf5', fontWeight: 700 },
+  // Listings
+  listingsSection: { padding: '80px 24px', background: '#f8fafc' },
+  sliderWrap: { overflowX: 'auto', paddingBottom: 8 },
+  slider: { display: 'flex', gap: 16, width: 'max-content', paddingBottom: 4 },
+  listingCard: { width: 272, flexShrink: 0, background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', textDecoration: 'none', color: 'inherit', display: 'block' },
+  cardImgWrap: { position: 'relative', height: 172 },
+  cardImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  cardTag: { position: 'absolute', top: 10, left: 10, padding: '3px 10px', borderRadius: 100, color: '#fff', fontSize: 10, fontWeight: 700 },
+  cardRiskBadge: { position: 'absolute', top: 10, right: 10, padding: '3px 8px', borderRadius: 100, fontSize: 10, fontWeight: 700 },
+  cardBody: { padding: 14 },
+  cardPrice: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 20, fontWeight: 800, color: '#0F1F3D', marginBottom: 2 },
+  cardAddr: { fontSize: 13, color: '#334155', marginBottom: 2, fontWeight: 600 },
+  cardHood: { fontSize: 11, color: '#94a3b8', marginBottom: 8 },
+  cardSpecs: { fontSize: 11, color: '#64748b', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' },
+  cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardComments: { fontSize: 11, color: '#64748b' },
+  cardCta: { fontSize: 12, color: '#1A6FE8', fontWeight: 700 },
+  riskBadge: { fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 100 },
 
-  testimonialSection: { padding: '80px 20px', background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#fff' },
+  // AI Section
+  aiSection: { background: '#0F1F3D', padding: '80px 24px' },
+  aiInner: { maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' },
+  aiLeft: {},
+  aiEyebrow: { display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#f97316', background: 'rgba(249,115,22,0.12)', padding: '4px 12px', borderRadius: 100, marginBottom: 18, textTransform: 'uppercase', letterSpacing: 1 },
+  aiTitle: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 38, fontWeight: 900, color: '#f8fafc', marginBottom: 16, lineHeight: 1.15 },
+  aiSub: { fontSize: 15, color: '#94a3b8', lineHeight: 1.7, marginBottom: 24 },
+  aiFeatures: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 },
+  aiFeatureRow: { display: 'flex', alignItems: 'center', gap: 10 },
+  aiCheck: { fontSize: 13, color: '#1A6FE8', fontWeight: 700, flexShrink: 0 },
+  aiDisclaimer: { fontSize: 12, color: '#475569', fontStyle: 'italic', lineHeight: 1.6, borderTop: '1px solid #1e3a5f', paddingTop: 16 },
+  aiRight: {},
+  aiCard: { background: '#162032', border: '1px solid #1e3a5f', borderRadius: 16, padding: 24 },
+  aiCardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, gap: 12 },
+  aiCardTitle: { fontSize: 16, fontWeight: 800, color: '#f8fafc', marginBottom: 3 },
+  aiCardAddr: { fontSize: 12, color: '#64748b' },
+  aiCardBadge: { fontSize: 10, fontWeight: 700, color: '#1A6FE8', background: 'rgba(26,111,232,0.12)', padding: '3px 10px', borderRadius: 100, flexShrink: 0 },
+  aiRiskList: { display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 20 },
+  aiRiskRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #1e2d40', gap: 8 },
+  aiRiskLabel: { fontSize: 12, color: '#94a3b8', flex: 1 },
+  aiRiskLevel: { fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 },
+  aiCardCta: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 10 },
+  aiGetBtn: { padding: '10px 18px', background: '#f97316', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none' },
+
+  // Features
+  featuresSection: { padding: '80px 24px', background: '#fff' },
+  featuresGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 },
+  featCard: { padding: 24, background: '#f8fafc', borderRadius: 14, border: '1px solid #e8edf2' },
+  featIcon: { fontSize: 24, marginBottom: 14 },
+  featTitle: { fontSize: 15, fontWeight: 700, color: '#0F1F3D', marginBottom: 8 },
+  featDesc: { fontSize: 13, color: '#64748b', lineHeight: 1.65 },
+
+  // Testimonial
+  testimonialSection: { padding: '80px 24px', background: 'linear-gradient(135deg, #0F1F3D, #162842)' },
   testimonialInner: { maxWidth: 760, margin: '0 auto', textAlign: 'center' },
-  quote: { fontFamily: 'var(--serif)', fontSize: 80, fontWeight: 900, color: '#1a6cf5', lineHeight: 0.6, marginBottom: 10 },
-  testimonialText: { fontFamily: 'var(--serif)', fontSize: 24, fontWeight: 400, lineHeight: 1.5, color: '#f1f5f9', marginBottom: 16, fontStyle: 'italic' },
-  testimonialAuthor: { fontSize: 13, color: '#94a3b8', fontWeight: 600 },
-  finalCta: { padding: '80px 20px', textAlign: 'center', background: 'linear-gradient(135deg, #1a6cf5, #f97316)' },
+  testimonialQuote: { fontFamily: 'Georgia, serif', fontSize: 96, fontWeight: 900, color: '#1A6FE8', lineHeight: 0.7, marginBottom: 16 },
+  testimonialText: { fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 400, lineHeight: 1.6, color: '#e2e8f0', marginBottom: 18, fontStyle: 'italic' },
+  testimonialAuthor: { fontSize: 13, color: '#64748b', fontWeight: 600 },
+
+  // Final CTA
+  finalCta: { padding: '88px 24px', textAlign: 'center', background: 'linear-gradient(135deg, #1A6FE8 0%, #0d4fbe 50%, #0F1F3D 100%)' },
+  finalCtaTitle: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 42, fontWeight: 900, color: '#fff', marginBottom: 12, lineHeight: 1.15 },
+  finalCtaSub: { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginBottom: 32, lineHeight: 1.6 },
+  btnFinalPrimary: { padding: '14px 28px', background: '#fff', color: '#1A6FE8', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none' },
+  btnFinalOrange: { padding: '14px 28px', background: '#f97316', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none' },
 }
