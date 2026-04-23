@@ -69,6 +69,9 @@ export default function Profile() {
   const [connectionStatus, setConnectionStatus] = useState(null)
   const [connectionId, setConnectionId] = useState(null)
 
+  // Follow notifications
+  const [followingFriends, setFollowingFriends] = useState({}) // connectionId -> bool
+
   // Link request
   const [linkStatus, setLinkStatus] = useState(null) // null | 'sent' | 'accepted'
   const [showLinkForm, setShowLinkForm] = useState(false)
@@ -102,6 +105,7 @@ export default function Profile() {
     fetchPosts()
     fetchFriends()
     if (user && !isOwn) checkConnectionStatus()
+    if (user && isOwn) fetchFollowPreferences()
   }, [userId, user])
 
   useEffect(() => {
@@ -249,6 +253,26 @@ export default function Profile() {
     setFriendsLoading(false)
   }
 
+  async function fetchFollowPreferences() {
+    if (!user) return
+    const { data } = await supabase
+      .from('connections')
+      .select('id, notify_on_post')
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .eq('status', 'accepted')
+    if (data) {
+      const map = {}
+      data.forEach(c => { map[c.id] = c.notify_on_post || false })
+      setFollowingFriends(map)
+    }
+  }
+
+  async function toggleFollowFriend(connectionId, currentValue) {
+    const newValue = !currentValue
+    await supabase.from('connections').update({ notify_on_post: newValue }).eq('id', connectionId)
+    setFollowingFriends(prev => ({ ...prev, [connectionId]: newValue }))
+  }
+
   async function fetchRequests() {
     setRequestsLoading(true)
     const { data: connData } = await supabase.from('connections').select('id, requester_id, created_at').eq('recipient_id', user.id).eq('status', 'pending')
@@ -319,7 +343,36 @@ export default function Profile() {
   async function acceptLinkRequest(reqId) { await supabase.from('representation_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', reqId); setLinkRequests(prev => prev.filter(r => r.id !== reqId)); fetchClientLinksCount() }
   async function declineLinkRequest(reqId) { await supabase.from('representation_requests').update({ status: 'declined', responded_at: new Date().toISOString() }).eq('id', reqId); setLinkRequests(prev => prev.filter(r => r.id !== reqId)) }
   async function unfriend(connId) { await supabase.from('connections').delete().eq('id', connId); setFriends(prev => prev.filter(f => f.connectionId !== connId)); if (connId === connectionId) setConnectionStatus(null) }
-  async function handlePost() { if (!postContent.trim()) return; setPostError(''); setPosting(true); const { error } = await supabase.from('profile_posts').insert({ user_id: user.id, content: postContent.trim() }); setPosting(false); if (error) setPostError('Failed to post.'); else { setPostContent(''); fetchPosts() } }
+  async function handlePost() {
+    if (!postContent.trim()) return
+    setPostError('')
+    setPosting(true)
+    const { error } = await supabase.from('profile_posts').insert({ user_id: user.id, content: postContent.trim() })
+    setPosting(false)
+    if (error) { setPostError('Failed to post.'); return }
+    setPostContent('')
+    fetchPosts()
+
+    // Notify followers
+    const { data: followers } = await supabase
+      .from('connections')
+      .select('requester_id, recipient_id')
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .eq('status', 'accepted')
+      .eq('notify_on_post', true)
+
+    if (followers && followers.length > 0) {
+      const notifs = followers.map(f => ({
+        user_id: f.requester_id === user.id ? f.recipient_id : f.requester_id,
+        type: 'profile_update',
+        title: `${profile?.name?.split(' ')[0] || 'Someone'} posted a new update`,
+        body: postContent.trim().length > 60 ? postContent.trim().slice(0, 60) + '...' : postContent.trim(),
+        related_user_id: user.id,
+        related_url: `/profile/${user.id}`,
+      }))
+      await supabase.from('notifications').insert(notifs)
+    }
+  }
   async function handleDeletePost(postId) { await supabase.from('profile_posts').delete().eq('id', postId); setPosts(prev => prev.filter(p => p.id !== postId)) }
 
   function timeAgo(dateStr) {
@@ -515,6 +568,15 @@ export default function Profile() {
                           </Link>
                           <div style={styles.friendActions}>
                             <Link to={`/messages?user=${friend.id}`} style={styles.messageBtn}>💬 Message</Link>
+                            {isOwn && (
+                              <button
+                                onClick={() => toggleFollowFriend(friend.connectionId, followingFriends[friend.connectionId])}
+                                style={{ ...styles.unfriendBtn, color: followingFriends[friend.connectionId] ? '#1a6cf5' : '#94a3b8', background: followingFriends[friend.connectionId] ? '#e8f0fe' : '#f1f5f9' }}
+                                title={followingFriends[friend.connectionId] ? 'Turn off post notifications' : 'Get notified when they post'}
+                              >
+                                {followingFriends[friend.connectionId] ? '🔔 Notifying' : '🔕 Notify me'}
+                              </button>
+                            )}
                             {isOwn && <button onClick={() => unfriend(friend.connectionId)} style={styles.unfriendBtn}>Unfriend</button>}
                           </div>
                         </div>
