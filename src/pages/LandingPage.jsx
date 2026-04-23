@@ -162,7 +162,7 @@ export default function LandingPage() {
         <div style={styles.wedgeInner}>
           <div style={styles.wedgeLabel}>The problem</div>
           <h2 style={styles.wedgeTitle}>
-            Zillow can't tell you the truth.<br/>
+            Listing sites can't tell you the truth.<br/>
             <span style={{ color: '#1A6FE8', fontStyle: 'italic' }}>Their customers are the agents.</span>
           </h2>
           <p style={styles.wedgeBody}>
