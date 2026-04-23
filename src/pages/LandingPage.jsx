@@ -127,72 +127,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section style={styles.howSection}>
-        <div style={styles.sectionInner}>
-          <div style={styles.sectionLabel}>How it works</div>
-          <h2 style={styles.h2}>Three steps to know the truth about any home</h2>
-          <div style={styles.howGrid}>
-            {[
-              { num: '01', title: 'Search any address', body: 'Find any listing or add a building not yet on Chathouse. Every address is comment-enabled.' },
-              { num: '02', title: 'Read honest reviews', body: 'Verified tenants, neighbors, and past buyers share what they actually know — the good and the bad.' },
-              { num: '03', title: 'Get the AI risk report', body: 'For $29, get a full AI-generated inspection risk report — what could go wrong and what it may cost.' },
-            ].map((s, i) => (
-              <div key={i} style={styles.howCard}>
-                <div style={styles.howNum}>{s.num}</div>
-                <h3 style={styles.howTitle}>{s.title}</h3>
-                <p style={styles.howBody}>{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Live listings */}
-      <section style={styles.listingsSection}>
-        <div style={styles.sectionInner}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
-            <div>
-              <div style={styles.sectionLabel}>Live listings</div>
-              <h2 style={{ ...styles.h2, marginBottom: 6 }}>Real homes. Real community insights.</h2>
-              <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6 }}>
-                Every listing shows honest comments from past tenants and buyers.{' '}
-                <Link to="/signup" style={{ color: '#1A6FE8', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link> to see all.
-              </p>
-            </div>
-            <Link to="/listings" style={{ ...styles.btnGhost, fontSize: 13, whiteSpace: 'nowrap' }}>View all listings →</Link>
-          </div>
-
-          <div style={styles.sliderWrap}>
-            <div style={styles.slider}>
-              {FEATURED_LISTINGS.map(l => (
-                <Link key={l.id} to={`/listing/${l.id}`} style={styles.listingCard}>
-                  <div style={styles.cardImgWrap}>
-                    <img src={l.img} alt={l.address} style={styles.cardImg}/>
-                    <div style={{ ...styles.cardTag, background: l.tagColor }}>{l.tag}</div>
-                    {l.risks > 0 && (
-                      <div style={{ ...styles.cardRiskBadge, ...(l.riskLevel === 'high' ? { background: '#fef2f2', color: '#991b1b' } : l.riskLevel === 'medium' ? { background: '#fef9c3', color: '#854d0e' } : { background: '#f0fdf4', color: '#166534' }) }}>
-                        {l.risks} risk{l.risks > 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
-                  <div style={styles.cardBody}>
-                    <div style={styles.cardPrice}>{l.price}</div>
-                    <div style={styles.cardAddr}>{l.address}</div>
-                    <div style={styles.cardHood}>📍 {l.hood}</div>
-                    <div style={styles.cardSpecs}>{l.beds} bd · {l.baths} ba · {l.sqft} sqft</div>
-                    <div style={styles.cardFooter}>
-                      <span style={styles.cardComments}>💬 {l.comments} comments</span>
-                      <span style={styles.cardCta}>View →</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* AI Risk Report — dark section */}
       <section style={styles.aiSection}>
         <div style={styles.aiInner}>
@@ -244,6 +178,72 @@ export default function LandingPage() {
                 </div>
                 <Link to="/signup" style={styles.aiGetBtn}>Get report →</Link>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section style={styles.howSection}>
+        <div style={styles.sectionInner}>
+          <div style={styles.sectionLabel}>How it works</div>
+          <h2 style={styles.h2}>Three steps to know the truth about any home</h2>
+          <div style={styles.howGrid}>
+            {[
+              { num: '01', title: 'Search any address', body: 'Find any listing or add a building not yet on Chathouse. Every address is comment-enabled.' },
+              { num: '02', title: 'Read honest reviews', body: 'Verified tenants, neighbors, and past buyers share what they actually know — the good and the bad.' },
+              { num: '03', title: 'See what could cost you thousands', body: 'For $29, get a full AI-generated inspection risk report — what could go wrong and what it may cost before you make an offer.' },
+            ].map((s, i) => (
+              <div key={i} style={styles.howCard}>
+                <div style={styles.howNum}>{s.num}</div>
+                <h3 style={styles.howTitle}>{s.title}</h3>
+                <p style={styles.howBody}>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Live listings */}
+      <section style={styles.listingsSection}>
+        <div style={styles.sectionInner}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
+            <div>
+              <div style={styles.sectionLabel}>Live listings</div>
+              <h2 style={{ ...styles.h2, marginBottom: 6 }}>Real homes. Real community insights.</h2>
+              <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6 }}>
+                Every listing shows honest comments from past tenants and buyers.{' '}
+                <Link to="/signup" style={{ color: '#1A6FE8', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link> to see all.
+              </p>
+            </div>
+            <Link to="/listings" style={{ ...styles.btnGhost, fontSize: 13, whiteSpace: 'nowrap' }}>View all listings →</Link>
+          </div>
+
+          <div style={styles.sliderWrap}>
+            <div style={styles.slider}>
+              {FEATURED_LISTINGS.map(l => (
+                <Link key={l.id} to={`/listing/${l.id}`} style={styles.listingCard}>
+                  <div style={styles.cardImgWrap}>
+                    <img src={l.img} alt={l.address} style={styles.cardImg}/>
+                    <div style={{ ...styles.cardTag, background: l.tagColor }}>{l.tag}</div>
+                    {l.risks > 0 && (
+                      <div style={{ ...styles.cardRiskBadge, ...(l.riskLevel === 'high' ? { background: '#fef2f2', color: '#991b1b' } : l.riskLevel === 'medium' ? { background: '#fef9c3', color: '#854d0e' } : { background: '#f0fdf4', color: '#166534' }) }}>
+                        {l.risks} risk{l.risks > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                  <div style={styles.cardBody}>
+                    <div style={styles.cardPrice}>{l.price}</div>
+                    <div style={styles.cardAddr}>{l.address}</div>
+                    <div style={styles.cardHood}>📍 {l.hood}</div>
+                    <div style={styles.cardSpecs}>{l.beds} bd · {l.baths} ba · {l.sqft} sqft</div>
+                    <div style={styles.cardFooter}>
+                      <span style={styles.cardComments}>💬 {l.comments} comments</span>
+                      <span style={styles.cardCta}>View →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
