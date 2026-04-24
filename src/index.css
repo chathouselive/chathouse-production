@@ -1,6 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+/* Inter via rsms — same source Linear, Stripe, etc use. Single font weight range covers all usage. */
+@import url('https://rsms.me/inter/inter.css');
 
 :root {
+  /* Brand colors */
   --blue: #1a6cf5;
   --blue-light: #e8f0fe;
   --orange: #f97316;
@@ -10,28 +12,32 @@
   --gray-light: #f1f5f9;
   --gray-border: #e2e8f0;
   --white: #ffffff;
-  --serif: 'Fraunces', Georgia, serif;
-  --sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+
+  /* Typography — both variables now point to Inter.
+     We keep both variable names so any existing `var(--serif)` or `var(--sans)` usage
+     continues to work without requiring a codebase-wide find/replace. */
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --serif: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   background: #fff;
   color: var(--black);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-height: 100vh;
 }
 
 a { color: var(--blue); text-decoration: none; }
 a:hover { text-decoration: underline; }
-
 button { font-family: inherit; cursor: pointer; }
-
 input, select, textarea { font-family: inherit; font-size: inherit; }
 
-/* Utility */
+/* Utility class — kept for backward compatibility, now just renders Inter */
 .serif { font-family: var(--serif); }
