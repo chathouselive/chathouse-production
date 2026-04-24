@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Mail, Lock, User, Camera, CheckCircle2, Info, ArrowLeft, MapPin, Shield } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { uploadProfilePhoto, updateMyProfile } from '../lib/useProfile'
+import { Button, Input, Select, Badge, Avatar } from '../components/ui'
+import { colors, space, font, radius } from '../styles/tokens'
 
-function ChathouseLogo({ height = 40 }) {
+function ChathouseLogo({ height = 36 }) {
   return (
     <svg height={height} viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
       <g transform="translate(24, 16) scale(0.84)">
@@ -15,27 +18,32 @@ function ChathouseLogo({ height = 40 }) {
         <circle cx="76" cy="32" r="3" fill="#1A6FE8"/>
         <circle cx="85" cy="32" r="3" fill="#1A6FE8"/>
       </g>
-      <text x="120" y="84" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" letterSpacing="-2">
+      <text x="120" y="84" fontFamily="Inter, system-ui, sans-serif" fontSize="58" letterSpacing="-2">
         <tspan fontWeight="800" fill="#0F1F3D">chat</tspan>
         <tspan fontWeight="400" fill="#1A6FE8" letterSpacing="-2">house</tspan>
       </text>
-      <text x="120" y="112" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
+      <text x="120" y="112" fontFamily="Inter, system-ui, sans-serif" fontWeight="500" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
     </svg>
   )
 }
 
 const ACCOUNT_TYPES = [
-  { value: 'buyer', label: '🏘️ Resident, Buyer or Renter', sub: 'Free forever. Search, comment, connect.' },
-  { value: 'agent', label: '🤝 Real Estate Agent', sub: 'Professional tools. Free during beta.' },
-  { value: 'broker', label: '🏦 Mortgage Broker', sub: 'Lead generation. Free during beta.' },
-  { value: 'landlord', label: '🏡 Individual Landlord', sub: 'Always free. Claim and respond.' },
-  { value: 'management', label: '🏢 Property Manager', sub: 'Portfolio tools. Free during beta.' },
+  { value: 'buyer',      label: 'Resident, Buyer or Renter', sub: 'Free forever. Search, comment, connect.' },
+  { value: 'agent',      label: 'Real Estate Agent',         sub: 'Professional tools. Free during beta.' },
+  { value: 'broker',     label: 'Mortgage Broker',           sub: 'Lead generation. Free during beta.' },
+  { value: 'landlord',   label: 'Individual Landlord',       sub: 'Always free. Claim and respond.' },
+  { value: 'management', label: 'Property Manager',          sub: 'Portfolio tools. Free during beta.' },
 ]
 
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
   'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
   'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]
+
+const CITIES = [
+  'New York, NY', 'Brooklyn, NY', 'Jersey City, NJ', 'Hoboken, NJ',
+  'Newark, NJ', 'Hackensack, NJ', 'Weehawken, NJ', 'Other',
 ]
 
 export default function SignUp() {
@@ -135,436 +143,691 @@ export default function SignUp() {
   }
 
   return (
-    <div style={styles.page}>
-      <style>{`
-        @media (max-width: 768px) {
-          .signup-right-panel { display: none !important; }
-          .signup-form-panel { width: 100% !important; }
-        }
-      `}</style>
+    <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: colors.white }}>
 
-      {/* Left panel — form */}
-      <div style={styles.formPanel} className="signup-form-panel">
-        <div style={styles.formInner}>
-          <div style={{ marginBottom: 28 }}>
-            <ChathouseLogo height={40} />
+      {/* LEFT — Form */}
+      <div style={{ display: 'flex', flexDirection: 'column', padding: space[8], overflowY: 'auto' }}>
+
+        {/* Top bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[10] }}>
+          <Link to="/" style={{ display: 'inline-block' }}>
+            <ChathouseLogo height={36} />
+          </Link>
+          <div style={{ display: 'flex', gap: space[3], alignItems: 'center' }}>
+            <span style={{ fontSize: font.size.sm, color: colors.slate500 }}>Have an account?</span>
+            <Button as={Link} to="/signin" variant="secondary" size="sm">Sign in</Button>
           </div>
+        </div>
+
+        {/* Step indicator */}
+        {step < 4 && (
+          <div style={{ display: 'flex', gap: space[2], marginBottom: space[8], maxWidth: 440, width: '100%', margin: `0 auto ${space[8]}px` }}>
+            {[1, 2, 3].map(n => (
+              <div key={n} style={{
+                flex: 1,
+                height: 3,
+                borderRadius: radius.pill,
+                background: n <= step ? colors.brand : colors.slate200,
+                transition: 'background 200ms ease',
+              }} />
+            ))}
+          </div>
+        )}
+
+        {/* Form content */}
+        <div style={{ flex: 1, maxWidth: 440, width: '100%', margin: '0 auto', paddingBottom: space[8] }}>
 
           {step === 1 && (
             <>
-              <h1 style={styles.heading}>How will you use Chathouse?</h1>
-              <p style={styles.sub}>Pick the account that fits. You can change this later.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {ACCOUNT_TYPES.map(t => (
-                  <button key={t.value} onClick={() => setAccountType(t.value)} style={{
-                    textAlign: 'left', padding: '14px 16px',
-                    background: accountType === t.value ? '#e8f0fe' : '#fff',
-                    border: `1.5px solid ${accountType === t.value ? '#1a6cf5' : '#e2e8f0'}`,
-                    borderRadius: 12, cursor: 'pointer',
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 3 }}>{t.label}</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>{t.sub}</div>
-                  </button>
-                ))}
+              <h1 style={stepHeading}>How will you use Chathouse?</h1>
+              <p style={stepSub}>Pick the account that fits. You can change this later.</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: space[2] }}>
+                {ACCOUNT_TYPES.map(t => {
+                  const selected = accountType === t.value
+                  return (
+                    <button
+                      key={t.value}
+                      onClick={() => setAccountType(t.value)}
+                      style={{
+                        textAlign: 'left',
+                        padding: `${space[4]}px ${space[4]}px`,
+                        background: selected ? colors.brandLight : colors.white,
+                        border: `1.5px solid ${selected ? colors.brand : colors.slate200}`,
+                        borderRadius: radius.xl,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: space[3],
+                        transition: 'all 160ms ease',
+                        fontFamily: font.family.sans,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: font.weight.bold, fontSize: font.size.base, color: colors.navy, marginBottom: 2 }}>
+                          {t.label}
+                        </div>
+                        <div style={{ fontSize: font.size.xs, color: colors.slate500 }}>{t.sub}</div>
+                      </div>
+                      {selected && <CheckCircle2 size={18} color={colors.brand} />}
+                    </button>
+                  )
+                })}
               </div>
-              <button onClick={() => setStep(2)} style={{ ...styles.button, marginTop: 20 }}>Continue →</button>
+
+              <Button onClick={() => setStep(2)} fullWidth size="lg" style={{ marginTop: space[6] }}>Continue</Button>
             </>
           )}
 
           {step === 2 && (
             <>
-              <h1 style={styles.heading}>Create your account</h1>
-              <p style={styles.sub}>{ACCOUNT_TYPES.find(t => t.value === accountType)?.label}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <Field label="Full name" required>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} style={styles.input} placeholder="Jane Smith"/>
-                </Field>
-                <Field label="Email" required>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} placeholder="you@email.com"/>
-                </Field>
-                <Field label="Password" required>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} placeholder="••••••••"/>
-                </Field>
+              <button onClick={() => setStep(1)} style={backBtnStyle}>
+                <ArrowLeft size={14} /> Back
+              </button>
+
+              <h1 style={stepHeading}>Create your account</h1>
+              <p style={stepSub}>{ACCOUNT_TYPES.find(t => t.value === accountType)?.label}</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: space[4] }}>
+                <Input
+                  label="Full name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Jane Smith"
+                  leftIcon={<User size={16} />}
+                  required
+                  autoComplete="name"
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  leftIcon={<Mail size={16} />}
+                  required
+                  autoComplete="email"
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  leftIcon={<Lock size={16} />}
+                  required
+                  autoComplete="new-password"
+                />
+
                 {!isPro && (
-                  <Field label="City">
-                    <select value={city} onChange={e => setCity(e.target.value)} style={{ ...styles.input, background: '#fff' }}>
-                      <option>New York, NY</option>
-                      <option>Brooklyn, NY</option>
-                      <option>Jersey City, NJ</option>
-                      <option>Hoboken, NJ</option>
-                      <option>Newark, NJ</option>
-                      <option>Hackensack, NJ</option>
-                      <option>Weehawken, NJ</option>
-                      <option>Other</option>
-                    </select>
-                  </Field>
+                  <Select label="City" value={city} onChange={e => setCity(e.target.value)}>
+                    {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </Select>
                 )}
+
                 {isPro && (
-                  <div style={styles.proSection}>
-                    <div style={styles.proSectionTitle}>Professional details</div>
-                    <Field label="States you serve" required hint="Pick all that apply. You'll show up in searches in these states.">
-                      <div style={styles.stateGrid}>
-                        {US_STATES.map(s => (
-                          <button key={s} type="button" onClick={() => toggleState(s)} style={{
-                            padding: '6px 0', fontSize: 11, fontWeight: 700,
-                            border: `1.5px solid ${statesServed.includes(s) ? '#1a6cf5' : '#e2e8f0'}`,
-                            background: statesServed.includes(s) ? '#e8f0fe' : '#fff',
-                            color: statesServed.includes(s) ? '#1a6cf5' : '#64748b',
-                            borderRadius: 6, cursor: 'pointer',
-                          }}>{s}</button>
-                        ))}
+                  <div style={proSectionStyle}>
+                    <div style={proSectionTitleStyle}>Professional details</div>
+
+                    <div>
+                      <div style={fieldLabelStyle}>
+                        States you serve <span style={{ color: colors.danger }}>*</span>
+                      </div>
+                      <div style={fieldHintStyle}>
+                        Pick all that apply. You'll show up in searches in these states.
+                      </div>
+                      <div style={stateGridStyle}>
+                        {US_STATES.map(s => {
+                          const on = statesServed.includes(s)
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => toggleState(s)}
+                              style={{
+                                padding: '7px 0',
+                                fontSize: font.size.xs,
+                                fontWeight: font.weight.bold,
+                                fontFamily: font.family.sans,
+                                border: `1.5px solid ${on ? colors.brand : colors.slate200}`,
+                                background: on ? colors.brandLight : colors.white,
+                                color: on ? colors.brand : colors.slate500,
+                                borderRadius: radius.sm,
+                                cursor: 'pointer',
+                                transition: 'all 120ms ease',
+                              }}
+                            >
+                              {s}
+                            </button>
+                          )
+                        })}
                       </div>
                       {statesServed.length > 0 && (
-                        <div style={{ fontSize: 11, color: '#1a6cf5', marginTop: 6, fontWeight: 600 }}>
+                        <div style={{ fontSize: font.size.xs, color: colors.brand, marginTop: space[2], fontWeight: font.weight.semibold }}>
                           Selected: {statesServed.join(', ')}
                         </div>
                       )}
-                    </Field>
+                    </div>
+
                     {isAgent && (
                       <>
-                        <Field label="Real estate license number" required>
-                          <input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} style={styles.input} placeholder="e.g. 12345678"/>
-                        </Field>
-                        <Field label="License state" required hint="The state that issued your license.">
-                          <select value={licenseState} onChange={e => setLicenseState(e.target.value)} style={{ ...styles.input, background: '#fff' }}>
-                            <option value="">Select state...</option>
-                            {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </Field>
+                        <Input
+                          label="Real estate license number"
+                          value={licenseNumber}
+                          onChange={e => setLicenseNumber(e.target.value)}
+                          placeholder="e.g. 12345678"
+                          required
+                        />
+                        <Select
+                          label="License state"
+                          value={licenseState}
+                          onChange={e => setLicenseState(e.target.value)}
+                          helper="The state that issued your license."
+                          required
+                        >
+                          <option value="">Select state...</option>
+                          {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </Select>
                       </>
                     )}
+
                     {isBroker && (
-                      <Field label="NMLS number" required hint="Your Nationwide Multistate Licensing System ID.">
-                        <input value={nmlsNumber} onChange={e => setNmlsNumber(e.target.value)} style={styles.input} placeholder="e.g. 1234567"/>
-                      </Field>
+                      <Input
+                        label="NMLS number"
+                        value={nmlsNumber}
+                        onChange={e => setNmlsNumber(e.target.value)}
+                        placeholder="e.g. 1234567"
+                        helper="Your Nationwide Multistate Licensing System ID."
+                        required
+                      />
                     )}
-                    <Field label={isBroker ? 'Company / lender name' : 'Brokerage name'} required>
-                      <input value={brokerageName} onChange={e => setBrokerageName(e.target.value)} style={styles.input}
-                        placeholder={isBroker ? 'e.g. Chase Home Lending' : 'e.g. Compass NYC'}/>
-                    </Field>
-                    <div style={styles.verifyNote}>
-                      ℹ️ Your license info will be reviewed by our admin team. You can use Chathouse while we verify — your profile will show "Pending verification" until approved.
+
+                    <Input
+                      label={isBroker ? 'Company / lender name' : 'Brokerage name'}
+                      value={brokerageName}
+                      onChange={e => setBrokerageName(e.target.value)}
+                      placeholder={isBroker ? 'e.g. Chase Home Lending' : 'e.g. Compass NYC'}
+                      required
+                    />
+
+                    <div style={verifyNoteStyle}>
+                      <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>
+                        Your license info will be reviewed by our admin team. You can use Chathouse while we verify — your profile will show "Pending verification" until approved.
+                      </span>
                     </div>
                   </div>
                 )}
-                {error && <div style={styles.error}>{error}</div>}
-                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-                  <button type="button" onClick={() => setStep(1)} style={styles.buttonSecondary}>← Back</button>
-                  <button type="button" onClick={validateAndContinue} style={{ ...styles.button, flex: 1 }}>Continue →</button>
-                </div>
+
+                {error && <ErrorBanner>{error}</ErrorBanner>}
+
+                <Button onClick={validateAndContinue} fullWidth size="lg" style={{ marginTop: space[2] }}>
+                  Continue
+                </Button>
               </div>
             </>
           )}
 
           {step === 3 && (
             <>
-              <h1 style={styles.heading}>{isPro ? 'Upload your profile photo' : 'Add a profile photo?'}</h1>
-              <p style={styles.sub}>
-                {isPro ? 'Required for professional accounts. Helps clients recognize you.' : 'Optional — helps the community recognize you on comments.'}
+              <button onClick={() => setStep(2)} style={backBtnStyle}>
+                <ArrowLeft size={14} /> Back
+              </button>
+
+              <h1 style={stepHeading}>
+                {isPro ? 'Upload your profile photo' : 'Add a profile photo?'}
+              </h1>
+              <p style={stepSub}>
+                {isPro
+                  ? 'Required for professional accounts. Helps clients recognize you.'
+                  : 'Optional — helps the community recognize you on comments.'}
               </p>
-              <div style={styles.photoRow}>
-                <div style={styles.photoPreview}>
+
+              <div style={photoRowStyle}>
+                <div style={photoPreviewStyle}>
                   {photoPreview ? (
-                    <img src={photoPreview} alt="preview" style={styles.photoImg}/>
+                    <img src={photoPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={styles.photoInitial}>{name[0]?.toUpperCase() || '?'}</div>
+                    <Avatar name={name || '?'} size={96} />
                   )}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <input id="photoFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} style={{ display: 'none' }}/>
-                  <label htmlFor="photoFile" style={styles.fileBtn}>
-                    📷 {photoFile ? 'Change photo' : 'Choose photo'}
+                  <input
+                    id="photoFile"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="photoFile" style={fileBtnStyle}>
+                    <Camera size={14} /> {photoFile ? 'Change photo' : 'Choose photo'}
                   </label>
-                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>JPG or PNG, under 5MB.</p>
+                  <p style={{ fontSize: font.size.xs, color: colors.slate400, marginTop: space[2] }}>
+                    JPG or PNG, under 5MB.
+                  </p>
                   {isPro && !photoFile && (
-                    <p style={{ fontSize: 11, color: '#dc2626', marginTop: 6, fontWeight: 600 }}>Required for pros</p>
+                    <p style={{ fontSize: font.size.xs, color: colors.danger, marginTop: space[2], fontWeight: font.weight.semibold }}>
+                      Required for pros
+                    </p>
                   )}
                 </div>
               </div>
-              {error && <div style={styles.error}>{error}</div>}
-              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+
+              {error && <div style={{ marginTop: space[4] }}><ErrorBanner>{error}</ErrorBanner></div>}
+
+              <div style={{ display: 'flex', gap: space[3], marginTop: space[6] }}>
                 {!isPro && (
-                  <button type="button" onClick={() => handleFinalSubmit(true)} disabled={loading} style={{ ...styles.buttonSecondary, opacity: loading ? 0.5 : 1 }}>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleFinalSubmit(true)}
+                    disabled={loading}
+                    size="lg"
+                  >
                     Skip for now
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
+                <Button
                   onClick={() => handleFinalSubmit(false)}
+                  loading={loading}
                   disabled={loading || (isPro && !photoFile)}
-                  style={{ ...styles.button, flex: 1, opacity: loading || (isPro && !photoFile) ? 0.5 : 1 }}
+                  fullWidth
+                  size="lg"
                 >
-                  {loading ? 'Creating account...' : 'Create account →'}
-                </button>
+                  {loading ? 'Creating account...' : 'Create account'}
+                </Button>
               </div>
             </>
           )}
 
           {step === 4 && (
-            <>
-              <div style={styles.checkmarkWrap}>
-                <div style={styles.checkmark}>📬</div>
+            <div style={{ textAlign: 'center', paddingTop: space[8] }}>
+              <div style={successIconStyle}>
+                <Mail size={32} color={colors.brand} />
               </div>
-              <h1 style={{ ...styles.heading, textAlign: 'center' }}>Check your email</h1>
-              <p style={{ ...styles.sub, textAlign: 'center', marginBottom: 20 }}>
-                We sent a confirmation link to <strong style={{ color: '#0f172a' }}>{email}</strong>.
-                Click the link in the email to verify your account, then sign in.
+              <h1 style={{ ...stepHeading, textAlign: 'center' }}>Check your email</h1>
+              <p style={{ ...stepSub, textAlign: 'center', marginBottom: space[6] }}>
+                We sent a confirmation link to <strong style={{ color: colors.navy }}>{email}</strong>. Click the link to verify your account, then sign in.
               </p>
-              <div style={styles.emailBox}>
-                <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
-                  ✓ Open your email inbox<br/>
-                  ✓ Look for a message from Chathouse (check spam if you don't see it)<br/>
-                  ✓ Click the confirmation link<br/>
-                  ✓ Return here and sign in
-                </div>
+
+              <div style={emailStepsStyle}>
+                {[
+                  'Open your email inbox',
+                  "Look for a message from Chathouse (check spam if you don't see it)",
+                  'Click the confirmation link',
+                  'Return here and sign in',
+                ].map((s, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: space[3] }}>
+                    <CheckCircle2 size={16} color={colors.brand} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: font.size.sm, color: colors.slate700, lineHeight: font.lineHeight.normal, textAlign: 'left' }}>
+                      {s}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <Link to="/signin" style={{ ...styles.button, textAlign: 'center', marginTop: 20, display: 'block', textDecoration: 'none' }}>
-                Go to Sign In →
-              </Link>
-              <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', marginTop: 14 }}>
+
+              <Button as={Link} to="/signin" fullWidth size="lg" style={{ marginTop: space[6], textDecoration: 'none' }}>
+                Go to sign in
+              </Button>
+              <p style={{ fontSize: font.size.xs, color: colors.slate400, marginTop: space[4] }}>
                 Didn't get the email? Check spam, or try signing up again in a few minutes.
               </p>
-            </>
+            </div>
           )}
 
-          <p style={styles.footerNote}>
-            Already have an account? <Link to="/signin" style={{ fontWeight: 600, color: '#1a6cf5' }}>Sign in</Link>
-          </p>
+          {step < 4 && (
+            <p style={legalStyle}>
+              By continuing you agree to our{' '}
+              <Link to="/terms" style={linkStyle}>Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" style={linkStyle}>Privacy Policy</Link>.
+            </p>
+          )}
+        </div>
 
-          <div style={styles.quoteBox}>
-            <div style={styles.quoteIcon}>"</div>
-            <p style={styles.quoteText}>I almost signed on a place with mold issues. Chathouse saved me.</p>
-            <p style={styles.quoteAuthor}>— Verified Chathouse member</p>
-          </div>
-
-          <p style={styles.legal}>
-            By continuing you agree to our{' '}
-            <Link to="/terms" style={{ color: '#1a6cf5', textDecoration: 'none' }}>Terms of Service</Link>
-            {' '}and{' '}
-            <Link to="/privacy" style={{ color: '#1a6cf5', textDecoration: 'none' }}>Privacy Policy</Link>
-          </p>
+        {/* Bottom trust note */}
+        <div style={trustNoteStyle}>
+          <Shield size={14} />
+          Free for buyers, renters, and neighbors — always will be.
         </div>
       </div>
 
-      {/* Right panel — diagonal split */}
-      <div style={styles.rightPanel} className="signup-right-panel">
-        <div style={styles.topHalf}>
-          <div style={styles.topOverlay}/>
-          <div style={styles.topContent}>
-            <span style={styles.pill}>FOR RENTERS</span>
+      {/* RIGHT — Social proof panel */}
+      <div style={rightPanelStyle}>
+        <div style={gridBgStyle} />
+
+        <div style={{ position: 'relative', maxWidth: 480, margin: '0 auto', width: '100%' }}>
+
+          <div style={{
+            fontSize: font.size.xs,
+            fontWeight: font.weight.bold,
+            textTransform: 'uppercase',
+            letterSpacing: font.letterSpacing.widest,
+            color: colors.accent,
+            marginBottom: space[3],
+          }}>
+            Join the community
           </div>
-        </div>
-        <div style={styles.bottomHalf}>
-          <div style={styles.bottomOverlay}/>
-          <div style={styles.bottomContent}>
-            <span style={styles.pill}>FOR BUYERS</span>
+
+          <h2 style={{
+            fontSize: font.size['5xl'],
+            fontWeight: font.weight.bold,
+            color: colors.white,
+            letterSpacing: font.letterSpacing.tight,
+            lineHeight: font.lineHeight.tight,
+            margin: 0,
+            marginBottom: space[3],
+          }}>
+            1,200+ already on Chathouse.
+          </h2>
+          <p style={{
+            fontSize: font.size.md,
+            color: colors.slate400,
+            lineHeight: font.lineHeight.relaxed,
+            margin: 0,
+            marginBottom: space[8],
+          }}>
+            Renters, buyers, and neighbors across the country sharing what they actually know about the homes they live in.
+          </p>
+
+          {/* City coverage pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: space[2], marginBottom: space[8] }}>
+            {['New York', 'Brooklyn', 'Jersey City', 'Hoboken', 'Newark', 'Weehawken', 'Hackensack'].map(c => (
+              <span key={c} style={cityPillStyle}>
+                <MapPin size={11} />
+                {c}
+              </span>
+            ))}
           </div>
-        </div>
-        <div style={styles.diagonalWrap}>
-          <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <line x1="0" y1="48%" x2="100%" y2="52%" stroke="white" strokeWidth="2.5" opacity="0.9"/>
-            <line x1="0" y1="49%" x2="100%" y2="53%" stroke="#1a6cf5" strokeWidth="1" opacity="0.8"/>
-          </svg>
-        </div>
-        <div style={styles.taglineWrap}>
-          <span style={styles.tagline}>YOUR HOME STORY STARTS HERE</span>
+
+          {/* Testimonial cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: space[3] }}>
+            <TestimonialCard
+              name="Maria C."
+              role="Past tenant"
+              location="Brooklyn, NY"
+              body="I almost signed a lease on a Park Slope 2BR. Two verified past tenants warned me about chronic mold. Saved me 24 months of misery."
+            />
+            <TestimonialCard
+              name="James T."
+              role="Buyer"
+              location="Jersey City, NJ"
+              body="Neighbor flagged a flooding issue three buyers before me missed. Renegotiated $18k off the closing price."
+            />
+            <TestimonialCard
+              name="Priya S."
+              role="Renter"
+              location="Hoboken, NJ"
+              body="The reviews are brutally honest. Not perfect apartments, but real ones. That's what I wanted."
+            />
+          </div>
         </div>
       </div>
-
     </div>
   )
 }
 
-function Field({ label, required, hint, children }) {
+// ——————————————————————————————————————————————————————————————
+// Sub-components
+// ——————————————————————————————————————————————————————————————
+
+function ErrorBanner({ children }) {
   return (
-    <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
-        {label}{required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
-      </label>
+    <div style={{
+      padding: `${space[3]}px ${space[4]}px`,
+      background: colors.dangerBg,
+      border: `1px solid ${colors.danger}33`,
+      borderRadius: radius.md,
+      color: colors.dangerText,
+      fontSize: font.size.sm,
+      fontWeight: font.weight.medium,
+    }}>
       {children}
-      {hint && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{hint}</div>}
     </div>
   )
 }
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'row',
-  },
-  formPanel: {
-    width: '50%',
-    minHeight: '100vh',
-    background: '#fff',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    overflowY: 'auto',
-    padding: '40px 20px',
-  },
-  formInner: {
-    width: '100%',
-    maxWidth: 460,
-  },
-  heading: { fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 700, marginBottom: 6, color: '#0f172a' },
-  sub: { fontSize: 14, color: '#64748b', marginBottom: 22 },
-  input: {
-    width: '100%', padding: '11px 14px',
-    border: '1.5px solid #e2e8f0', borderRadius: 10,
-    fontSize: 14, color: '#0f172a', outline: 'none',
-    boxSizing: 'border-box',
-  },
-  button: {
-    width: '100%', padding: '13px 20px',
-    background: '#1a6cf5', color: '#fff',
-    border: 'none', borderRadius: 10,
-    fontSize: 15, fontWeight: 600, cursor: 'pointer',
-  },
-  buttonSecondary: {
-    padding: '13px 18px', background: '#f1f5f9', color: '#475569',
-    border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-  },
-  error: {
-    padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca',
-    borderRadius: 8, color: '#dc2626', fontSize: 13,
-  },
-  footerNote: { fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 24, marginBottom: 16 },
-  quoteBox: {
-    padding: '18px 20px',
-    background: '#f8fafc',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  quoteIcon: {
-    fontFamily: 'var(--serif)', fontSize: 32, fontWeight: 900,
-    color: '#1a6cf5', lineHeight: 0.8, marginBottom: 8,
-  },
-  quoteText: {
-    fontSize: 13, color: '#334155', lineHeight: 1.6,
-    fontStyle: 'italic', margin: '0 0 8px',
-  },
-  quoteAuthor: {
-    fontSize: 11, color: '#94a3b8', fontWeight: 600, margin: 0,
-  },
-  legal: {
-    fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 1.6,
-  },
-  photoRow: { display: 'flex', alignItems: 'center', gap: 16 },
-  photoPreview: { width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 },
-  photoImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  photoInitial: {
-    width: '100%', height: '100%',
-    background: 'linear-gradient(135deg, #1a6cf5, #f97316)',
-    color: '#fff', fontSize: 30, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  fileBtn: {
-    display: 'inline-block', padding: '8px 14px',
-    border: '1.5px solid #e2e8f0', borderRadius: 8,
-    fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', background: '#fff',
-  },
-  proSection: {
-    padding: 16, background: '#f8fafc',
-    borderRadius: 12, border: '1px solid #e2e8f0',
-    display: 'flex', flexDirection: 'column', gap: 14,
-  },
-  proSectionTitle: {
-    fontFamily: 'var(--serif)', fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 2,
-  },
-  stateGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 4,
-  },
-  verifyNote: {
-    padding: 10, background: '#fef3c7', border: '1px solid #fcd34d',
-    borderRadius: 8, fontSize: 11, color: '#92400e', lineHeight: 1.5,
-  },
-  checkmarkWrap: { display: 'flex', justifyContent: 'center', marginBottom: 18 },
-  checkmark: {
-    width: 80, height: 80, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #e8f0fe, #dcfce7)',
-    fontSize: 40,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    border: '3px solid #fff',
-    boxShadow: '0 8px 24px rgba(26,108,245,0.15)',
-  },
-  emailBox: {
-    padding: 18, background: '#f8fafc', borderRadius: 12, border: '1.5px solid #e2e8f0',
-  },
-  rightPanel: {
-    width: '50%',
-    minHeight: '100vh',
-    position: 'relative',
-    overflow: 'hidden',
-    background: '#0f172a',
-  },
-  topHalf: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: '55%',
-    backgroundImage: 'url(https://images.unsplash.com/photo-1486325212027-8081e485255e?w=900&q=85)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center top',
-    clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)',
-  },
-  topOverlay: {
-    position: 'absolute', inset: 0,
-    background: 'linear-gradient(180deg, rgba(15,23,42,0.1) 0%, rgba(15,23,42,0.5) 100%)',
-  },
-  topContent: {
-    position: 'absolute', bottom: 60, left: 32,
-  },
-  bottomHalf: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: '55%',
-    backgroundImage: 'url(https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=900&q=85)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    clipPath: 'polygon(0 12%, 100% 0, 100% 100%, 0 100%)',
-    zIndex: 1,
-  },
-  bottomOverlay: {
-    position: 'absolute', inset: 0,
-    background: 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, rgba(15,23,42,0.5) 100%)',
-  },
-  bottomContent: {
-    position: 'absolute', bottom: 40, left: 32, zIndex: 2,
-  },
-  pill: {
-    display: 'inline-block',
-    padding: '6px 16px',
-    background: 'rgba(15,23,42,0.7)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: 100,
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: 1.5,
-  },
-  diagonalWrap: {
-    position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-  },
-  taglineWrap: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    zIndex: 3,
-    textAlign: 'center',
-    pointerEvents: 'none',
-    background: 'rgba(15,23,42,0.65)',
-    padding: '10px 24px',
-    borderRadius: 100,
-    whiteSpace: 'nowrap',
-    border: '1px solid rgba(255,255,255,0.15)',
-  },
-  tagline: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#fff',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-  },
+function TestimonialCard({ name, role, location, body }) {
+  return (
+    <div style={{
+      background: colors.navyDark,
+      border: `1px solid ${colors.navyLine}`,
+      borderRadius: radius.xl,
+      padding: space[4],
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: space[2], marginBottom: space[3] }}>
+        <Avatar name={name} size={28} />
+        <div>
+          <div style={{ fontSize: font.size.xs, fontWeight: font.weight.bold, color: colors.white }}>
+            {name} · {role}
+          </div>
+          <div style={{ fontSize: 10, color: colors.slate400, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <MapPin size={9} />
+            {location}
+          </div>
+        </div>
+      </div>
+      <p style={{
+        fontSize: font.size.sm,
+        color: colors.slate300,
+        lineHeight: font.lineHeight.relaxed,
+        margin: 0,
+      }}>
+        {body}
+      </p>
+    </div>
+  )
+}
+
+// ——————————————————————————————————————————————————————————————
+// Inline style objects
+// ——————————————————————————————————————————————————————————————
+
+const stepHeading = {
+  fontSize: font.size['4xl'],
+  fontWeight: font.weight.bold,
+  color: colors.navy,
+  letterSpacing: font.letterSpacing.tight,
+  lineHeight: font.lineHeight.tight,
+  margin: 0,
+  marginBottom: space[2],
+}
+
+const stepSub = {
+  fontSize: font.size.md,
+  color: colors.slate500,
+  lineHeight: font.lineHeight.normal,
+  margin: 0,
+  marginBottom: space[6],
+}
+
+const backBtnStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: space[1],
+  padding: `${space[1]}px ${space[2]}px`,
+  background: 'transparent',
+  border: 'none',
+  color: colors.slate500,
+  fontSize: font.size.sm,
+  fontWeight: font.weight.semibold,
+  fontFamily: font.family.sans,
+  cursor: 'pointer',
+  marginBottom: space[4],
+  marginLeft: -space[2],
+  borderRadius: radius.sm,
+}
+
+const proSectionStyle = {
+  padding: space[4],
+  background: colors.slate50,
+  borderRadius: radius.xl,
+  border: `1px solid ${colors.border}`,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: space[4],
+}
+
+const proSectionTitleStyle = {
+  fontSize: font.size.base,
+  fontWeight: font.weight.bold,
+  color: colors.navy,
+  marginBottom: space[1],
+  fontFamily: font.family.sans,
+}
+
+const fieldLabelStyle = {
+  fontSize: font.size.sm,
+  fontWeight: font.weight.semibold,
+  color: colors.slate700,
+  fontFamily: font.family.sans,
+  marginBottom: 4,
+}
+
+const fieldHintStyle = {
+  fontSize: font.size.xs,
+  color: colors.slate500,
+  marginBottom: space[2],
+}
+
+const stateGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))',
+  gap: 4,
+}
+
+const verifyNoteStyle = {
+  padding: space[3],
+  background: colors.warningBg,
+  border: `1px solid ${colors.warning}33`,
+  borderRadius: radius.md,
+  fontSize: font.size.xs,
+  color: colors.warningText,
+  lineHeight: font.lineHeight.normal,
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: space[2],
+}
+
+const photoRowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: space[4],
+  padding: space[4],
+  background: colors.slate50,
+  borderRadius: radius.xl,
+  border: `1px solid ${colors.border}`,
+}
+
+const photoPreviewStyle = {
+  width: 96,
+  height: 96,
+  borderRadius: '50%',
+  overflow: 'hidden',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: colors.white,
+  border: `2px solid ${colors.white}`,
+  boxShadow: '0 2px 8px rgba(15,31,61,0.08)',
+}
+
+const fileBtnStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: space[2],
+  padding: `${space[2]}px ${space[3]}px`,
+  border: `1.5px solid ${colors.slate200}`,
+  borderRadius: radius.md,
+  fontSize: font.size.sm,
+  fontWeight: font.weight.semibold,
+  color: colors.slate700,
+  cursor: 'pointer',
+  background: colors.white,
+  fontFamily: font.family.sans,
+}
+
+const successIconStyle = {
+  width: 72,
+  height: 72,
+  borderRadius: '50%',
+  background: colors.brandLight,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: space[5],
+  border: `4px solid ${colors.white}`,
+  boxShadow: '0 4px 16px rgba(26,111,232,0.15)',
+}
+
+const emailStepsStyle = {
+  padding: space[5],
+  background: colors.slate50,
+  borderRadius: radius.xl,
+  border: `1px solid ${colors.border}`,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: space[3],
+  textAlign: 'left',
+}
+
+const legalStyle = {
+  fontSize: font.size.xs,
+  color: colors.slate400,
+  textAlign: 'center',
+  lineHeight: font.lineHeight.normal,
+  marginTop: space[6],
+  marginBottom: 0,
+}
+
+const linkStyle = {
+  color: colors.brand,
+  textDecoration: 'none',
+  fontWeight: font.weight.semibold,
+}
+
+const trustNoteStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: space[2],
+  fontSize: font.size.xs,
+  color: colors.slate400,
+  marginTop: space[8],
+  maxWidth: 440,
+  width: '100%',
+  margin: `${space[8]}px auto 0`,
+}
+
+const rightPanelStyle = {
+  background: colors.navy,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  padding: space[12],
+  color: colors.white,
+  position: 'relative',
+  overflow: 'hidden',
+}
+
+const gridBgStyle = {
+  position: 'absolute',
+  inset: 0,
+  backgroundImage: `linear-gradient(${colors.navyLine}66 1px, transparent 1px), linear-gradient(90deg, ${colors.navyLine}66 1px, transparent 1px)`,
+  backgroundSize: '40px 40px',
+  opacity: 0.4,
+  pointerEvents: 'none',
+}
+
+const cityPillStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  padding: `${space[1]}px ${space[3]}px`,
+  background: colors.navyDark,
+  border: `1px solid ${colors.navyLine}`,
+  borderRadius: radius.pill,
+  fontSize: font.size.xs,
+  fontWeight: font.weight.semibold,
+  color: colors.slate300,
 }
