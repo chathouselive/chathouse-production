@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Mail, Lock, MessageSquare, Shield, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
-import Footer from '../components/Footer'
+import { Button, Input, Card, Badge, Avatar } from '../components/ui'
+import { colors, space, font, radius } from '../styles/tokens'
 
-function ChathouseLogo({ height = 40 }) {
+function ChathouseLogo({ height = 36 }) {
   return (
     <svg height={height} viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
       <g transform="translate(24, 16) scale(0.84)">
@@ -15,11 +17,11 @@ function ChathouseLogo({ height = 40 }) {
         <circle cx="76" cy="32" r="3" fill="#1A6FE8"/>
         <circle cx="85" cy="32" r="3" fill="#1A6FE8"/>
       </g>
-      <text x="120" y="84" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" letterSpacing="-2">
+      <text x="120" y="84" fontFamily="Inter, system-ui, sans-serif" fontSize="58" letterSpacing="-2">
         <tspan fontWeight="800" fill="#0F1F3D">chat</tspan>
         <tspan fontWeight="400" fill="#1A6FE8" letterSpacing="-2">house</tspan>
       </text>
-      <text x="120" y="112" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
+      <text x="120" y="112" fontFamily="Inter, system-ui, sans-serif" fontWeight="500" fontSize="13" fill="#8A94A6" letterSpacing="1.5">FIND. TALK. MOVE.</text>
     </svg>
   )
 }
@@ -43,169 +45,251 @@ export default function DedicatedSignIn() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: colors.white }}>
 
-      {/* Top bar */}
-      <header style={styles.topbar}>
-        <div style={styles.topbarInner}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <ChathouseLogo height={40} />
+      {/* LEFT — Form */}
+      <div style={{ display: 'flex', flexDirection: 'column', padding: space[8] }}>
+
+        {/* Top bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[16] }}>
+          <Link to="/" style={{ display: 'inline-block' }}>
+            <ChathouseLogo height={36} />
           </Link>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: '#64748b' }}>No account?</span>
-            <Link to="/signup" style={styles.signUpBtn}>Sign up free →</Link>
+          <div style={{ display: 'flex', gap: space[3], alignItems: 'center' }}>
+            <span style={{ fontSize: font.size.sm, color: colors.slate500 }}>No account?</span>
+            <Button as={Link} to="/signup" variant="secondary" size="sm">Sign up free</Button>
           </div>
         </div>
-      </header>
 
-      {/* Form */}
-      <div style={styles.body}>
-        <div style={styles.card}>
-          <h1 style={styles.heading}>Welcome back</h1>
-          <p style={styles.sub}>Sign in to access your Chathouse account.</p>
+        {/* Form — vertically centered in remaining space */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 400, width: '100%', margin: '0 auto' }}>
+          <h1 style={{
+            fontSize: font.size['5xl'],
+            fontWeight: font.weight.bold,
+            color: colors.navy,
+            letterSpacing: font.letterSpacing.tight,
+            lineHeight: font.lineHeight.tight,
+            margin: 0,
+            marginBottom: space[2],
+          }}>
+            Welcome back
+          </h1>
+          <p style={{
+            fontSize: font.size.md,
+            color: colors.slate500,
+            lineHeight: font.lineHeight.normal,
+            margin: 0,
+            marginBottom: space[8],
+          }}>
+            Sign in to access your Chathouse account.
+          </p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={styles.label}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                required
-                style={styles.input}
-              />
-            </div>
-            <div>
-              <label style={styles.label}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={styles.input}
-              />
-            </div>
-            {error && <div style={styles.error}>{error}</div>}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{ ...styles.button, opacity: loading ? 0.6 : 1 }}
-            >
-              {loading ? 'Signing in...' : 'Sign in →'}
-            </button>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: space[4] }}>
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@email.com"
+              leftIcon={<Mail size={16} />}
+              required
+              autoComplete="email"
+              autoFocus
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              leftIcon={<Lock size={16} />}
+              required
+              autoComplete="current-password"
+              error={error || undefined}
+            />
+            <Button type="submit" loading={loading} fullWidth size="lg" style={{ marginTop: space[2] }}>
+              {loading ? 'Signing in...' : 'Sign in'}
+            </Button>
           </form>
 
-          <div style={styles.divider}>
-            <span style={styles.dividerText}>or</span>
-          </div>
-
-          <p style={styles.signupPrompt}>
+          <p style={{
+            fontSize: font.size.sm,
+            color: colors.slate500,
+            textAlign: 'center',
+            margin: `${space[8]}px 0 0 0`,
+          }}>
             Don't have an account?{' '}
-            <Link to="/signup" style={styles.link}>Sign up free</Link>
+            <Link to="/signup" style={{ color: colors.brand, fontWeight: font.weight.semibold, textDecoration: 'none' }}>
+              Sign up free
+            </Link>
             {' '}— it takes 30 seconds.
-          </p>
-
-          <p style={styles.backLink}>
-            <Link to="/" style={styles.link}>← Back to home</Link>
           </p>
         </div>
 
-        {/* Trust note */}
-        <div style={styles.trustNote}>
-          <span style={styles.trustIcon}>🔒</span>
-          <span style={styles.trustText}>Free for buyers, renters, and neighbors · Always will be</span>
+        {/* Bottom trust note */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: space[2],
+          fontSize: font.size.xs,
+          color: colors.slate400,
+          marginTop: space[8],
+        }}>
+          <Shield size={14} />
+          Free for buyers, renters, and neighbors — always will be.
         </div>
       </div>
 
-      <Footer />
+      {/* RIGHT — Visual panel (proof of product) */}
+      <div style={{
+        background: colors.navy,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: space[12],
+        color: colors.white,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Subtle grid background */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `linear-gradient(${colors.navyLine}66 1px, transparent 1px), linear-gradient(90deg, ${colors.navyLine}66 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+          opacity: 0.4,
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', maxWidth: 460, margin: '0 auto', width: '100%' }}>
+          <div style={{
+            fontSize: font.size.xs,
+            fontWeight: font.weight.bold,
+            textTransform: 'uppercase',
+            letterSpacing: font.letterSpacing.widest,
+            color: colors.accent,
+            marginBottom: space[3],
+          }}>
+            What you're signing into
+          </div>
+
+          <h2 style={{
+            fontSize: font.size['4xl'],
+            fontWeight: font.weight.bold,
+            color: colors.white,
+            letterSpacing: font.letterSpacing.tight,
+            lineHeight: font.lineHeight.tight,
+            margin: 0,
+            marginBottom: space[3],
+          }}>
+            Honest reviews. Real risks. Before you sign.
+          </h2>
+          <p style={{
+            fontSize: font.size.md,
+            color: colors.slate400,
+            lineHeight: font.lineHeight.relaxed,
+            margin: 0,
+            marginBottom: space[8],
+          }}>
+            Verified past tenants, neighbors, and buyers publicly review every listing.
+          </p>
+
+          {/* Sample live thread */}
+          <div style={{
+            background: colors.navyDark,
+            border: `1px solid ${colors.navyLine}`,
+            borderRadius: radius['2xl'],
+            padding: space[5],
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingBottom: space[3],
+              marginBottom: space[4],
+              borderBottom: `1px solid ${colors.navyLine}`,
+            }}>
+              <div>
+                <div style={{ fontSize: font.size.base, fontWeight: font.weight.bold, color: colors.white, marginBottom: 2 }}>
+                  47 Riverside Ave, Apt 2C
+                </div>
+                <div style={{ fontSize: font.size.xs, color: colors.slate400 }}>
+                  Downtown Jersey City, NJ · 12 verified reviews
+                </div>
+              </div>
+              <Badge tone="success" size="sm">Live</Badge>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: space[3] }}>
+              <ThreadMessage
+                name="Maria C."
+                role="Past tenant"
+                meta="Lived here 2022–2024 · Verified"
+                time="3d ago"
+                body="Radiators make a banging noise all winter — we complained 3 times, never fixed. Otherwise the unit is solid and the light is amazing."
+              />
+              <ThreadMessage
+                name="David R."
+                role="Neighbor"
+                meta="Building resident · Verified"
+                time="1w ago"
+                body="Super is responsive. Garbage pickup on Tuesdays around 6am — FYI if you're a light sleeper."
+              />
+            </div>
+          </div>
+
+          {/* Trust bullets below card */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: space[2],
+            marginTop: space[8],
+          }}>
+            {[
+              'Verified reviewers only',
+              'No paid placement',
+              'Free for every buyer and renter',
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: space[2], fontSize: font.size.sm, color: colors.slate300 }}>
+                <CheckCircle2 size={14} color={colors.brand} />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-const styles = {
-  topbar: {
-    background: '#fff',
-    borderBottom: '1px solid #e2e8f0',
-    position: 'sticky', top: 0, zIndex: 40,
-  },
-  topbarInner: {
-    maxWidth: 1100, margin: '0 auto',
-    padding: '14px 20px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  },
-  signUpBtn: {
-    padding: '8px 16px', background: '#1a6cf5', color: '#fff',
-    borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none',
-  },
-  body: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 440,
-    background: '#fff',
-    borderRadius: 20,
-    padding: '40px 36px',
-    border: '1.5px solid #e2e8f0',
-    boxShadow: '0 8px 32px rgba(26,108,245,0.08)',
-    marginBottom: 20,
-  },
-  heading: {
-    fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 700,
-    color: '#0f172a', marginBottom: 6,
-  },
-  sub: { fontSize: 14, color: '#64748b', marginBottom: 28 },
-  label: {
-    display: 'block', fontSize: 12, fontWeight: 600,
-    color: '#64748b', marginBottom: 6,
-  },
-  input: {
-    width: '100%', padding: '12px 14px',
-    border: '1.5px solid #e2e8f0', borderRadius: 10,
-    fontSize: 14, color: '#0f172a', outline: 'none',
-    boxSizing: 'border-box',
-  },
-  button: {
-    width: '100%', padding: '13px',
-    background: '#1a6cf5', color: '#fff',
-    border: 'none', borderRadius: 10,
-    fontSize: 15, fontWeight: 700, cursor: 'pointer',
-    marginTop: 4,
-  },
-  error: {
-    padding: '10px 14px', background: '#fef2f2',
-    border: '1px solid #fecaca', borderRadius: 8,
-    color: '#dc2626', fontSize: 13,
-  },
-  divider: {
-    display: 'flex', alignItems: 'center',
-    margin: '24px 0 20px',
-    gap: 12,
-  },
-  dividerText: {
-    fontSize: 12, color: '#94a3b8', fontWeight: 500,
-    background: '#fff', padding: '0 8px',
-  },
-  signupPrompt: {
-    fontSize: 14, color: '#475569',
-    textAlign: 'center', lineHeight: 1.6,
-    marginBottom: 12,
-  },
-  backLink: {
-    textAlign: 'center', fontSize: 13, color: '#94a3b8',
-  },
-  link: { color: '#1a6cf5', textDecoration: 'none', fontWeight: 600 },
-  trustNote: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 12, color: '#94a3b8',
-  },
-  trustIcon: { fontSize: 14 },
-  trustText: {},
+function ThreadMessage({ name, role, meta, time, body }) {
+  return (
+    <div style={{
+      background: colors.navy,
+      border: `1px solid ${colors.navyLineSoft}`,
+      borderRadius: radius.lg,
+      padding: space[3],
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: space[2] }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: space[2] }}>
+          <Avatar name={name} size={26} />
+          <div>
+            <div style={{ fontSize: font.size.xs, fontWeight: font.weight.bold, color: colors.white }}>
+              {name} · {role}
+            </div>
+            <div style={{ fontSize: 10, color: colors.slate400 }}>{meta}</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: colors.slate400 }}>{time}</div>
+      </div>
+      <p style={{
+        fontSize: font.size.sm,
+        color: colors.slate300,
+        lineHeight: font.lineHeight.relaxed,
+        margin: 0,
+      }}>
+        {body}
+      </p>
+    </div>
+  )
 }
