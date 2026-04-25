@@ -119,10 +119,15 @@ export default function Profile() {
   }, [profile])
 
   async function fetchClientLinksCount() {
-    const { count } = await supabase.from('agent_clients').select('*', { count: 'exact', head: true }).eq('agent_id', userId)
+    const { count } = await supabase
+      .from('representation_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('agent_id', userId)
+      .eq('status', 'accepted')
     setClientLinksCount(count || 0)
   }
 
+  // CHANGED: .single() -> .maybeSingle() to avoid 406 errors when no link exists
   async function checkLinkStatus() {
     if (!user) return
     // Check both directions: viewer sent to profile owner, or profile owner sent to viewer
@@ -132,7 +137,7 @@ export default function Profile() {
       .or(`and(agent_id.eq.${userId},lead_user_id.eq.${user.id}),and(agent_id.eq.${user.id},lead_user_id.eq.${userId})`)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
     if (data) {
       setLinkStatus(data.status === 'accepted' ? 'accepted' : 'sent')
     }
@@ -182,15 +187,18 @@ export default function Profile() {
     setReviewsLoading(false)
   }
 
+  // CHANGED: capture client links count locally to avoid stale closure on clientLinksCount
   async function fetchAchievementStats() {
     const [
       { data: userComments },
       { count: friendCount },
-      { count: claimedProps }
+      { count: claimedProps },
+      { count: linksCount }
     ] = await Promise.all([
       supabase.from('comments').select('id, listing_id').eq('user_id', userId),
       supabase.from('connections').select('*', { count: 'exact', head: true }).or(`requester_id.eq.${userId},recipient_id.eq.${userId}`).eq('status', 'accepted'),
       supabase.from('listings').select('*', { count: 'exact', head: true }).eq('claimed_by', userId),
+      supabase.from('representation_requests').select('*', { count: 'exact', head: true }).eq('agent_id', userId).eq('status', 'accepted'),
     ])
     let commentLikes = 0
     if (userComments && userComments.length > 0) {
@@ -200,7 +208,7 @@ export default function Profile() {
     }
     const uniqueListings = new Set(userComments?.map(c => c.listing_id) || []).size
     setAchievementStats({
-      clientLinks: clientLinksCount,
+      clientLinks: linksCount || 0,
       commentLikes,
       avgRating,
       firstComment: (userComments?.length || 0) > 0,
@@ -294,26 +302,29 @@ export default function Profile() {
 
   async function checkConnectionStatus() {
     if (!user) return
-    const { data } = await supabase.from('connections').select('id, status, requester_id').or(`and(requester_id.eq.${user.id},recipient_id.eq.${userId}),and(requester_id.eq.${userId},recipient_id.eq.${user.id})`).single()
+    const { data } = await supabase.from('connections').select('id, status, requester_id').or(`and(requester_id.eq.${user.id},recipient_id.eq.${userId}),and(requester_id.eq.${userId},recipient_id.eq.${user.id})`).maybeSingle()
     if (data) { setConnectionId(data.id); if (data.status === 'accepted') setConnectionStatus('accepted'); else if (data.requester_id === user.id) setConnectionStatus('sent'); else setConnectionStatus('pending') }
   }
 
+  // CHANGED: simplified to a single DELETE on representation_requests.
+  // The on_representation_unlinked DB trigger handles agent_clients soft-delete automatically.
+  // Previous code violated check_constraint by setting status='unlinked' (not allowed).
   async function unlinkRequest() {
     const proName = profile.name?.split(' ')[0]
     const confirmed = window.confirm(`Are you sure you want to unlink from ${proName}? This will remove the client relationship on both sides.`)
     if (!confirmed) return
 
-    // Delete agent_clients row (both directions)
-    await supabase
-      .from('agent_clients')
-      .delete()
-      .or(`and(agent_id.eq.${userId},client_user_id.eq.${user.id}),and(agent_id.eq.${user.id},client_user_id.eq.${userId})`)
-
-    // Update representation_requests to unlinked
-    await supabase
+    // DELETE representation_requests row (both directions).
+    // Trigger on_representation_unlinked will soft-delete the matching agent_clients row.
+    const { error } = await supabase
       .from('representation_requests')
-      .update({ status: 'unlinked' })
+      .delete()
       .or(`and(agent_id.eq.${userId},lead_user_id.eq.${user.id}),and(agent_id.eq.${user.id},lead_user_id.eq.${userId})`)
+
+    if (error) {
+      console.error('[Profile] unlink failed:', error)
+      return
+    }
 
     setLinkStatus(null)
     if (isPro || ['agent','broker'].includes(viewerProfile?.account_type)) {
