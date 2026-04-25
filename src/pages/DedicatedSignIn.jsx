@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, Lock, MessageSquare, Shield, CheckCircle2 } from 'lucide-react'
+import { Mail, Lock, Shield, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
-import { Button, Input, Card, Badge, Avatar } from '../components/ui'
+import { Button, Input, Badge, Avatar, GoogleButton } from '../components/ui'
 import { colors, space, font, radius } from '../styles/tokens'
 
 function ChathouseLogo({ height = 36 }) {
@@ -27,12 +27,13 @@ function ChathouseLogo({ height = 36 }) {
 }
 
 export default function DedicatedSignIn() {
-  const { signIn } = useAuth()
+  const { signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -44,13 +45,21 @@ export default function DedicatedSignIn() {
     else navigate('/listings')
   }
 
+  async function handleGoogle() {
+    setError('')
+    setGoogleLoading(true)
+    const { error } = await signInWithGoogle()
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: colors.white }}>
 
       {/* LEFT — Form */}
       <div style={{ display: 'flex', flexDirection: 'column', padding: space[8] }}>
-
-        {/* Top bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[16] }}>
           <Link to="/" style={{ display: 'inline-block' }}>
             <ChathouseLogo height={36} />
@@ -61,7 +70,6 @@ export default function DedicatedSignIn() {
           </div>
         </div>
 
-        {/* Form — vertically centered in remaining space */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 400, width: '100%', margin: '0 auto' }}>
           <h1 style={{
             fontSize: font.size['5xl'],
@@ -79,10 +87,28 @@ export default function DedicatedSignIn() {
             color: colors.slate500,
             lineHeight: font.lineHeight.normal,
             margin: 0,
-            marginBottom: space[8],
+            marginBottom: space[6],
           }}>
             Sign in to access your Chathouse account.
           </p>
+
+          <GoogleButton onClick={handleGoogle} loading={googleLoading} disabled={loading} />
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: space[3],
+            margin: `${space[6]}px 0`,
+            color: colors.slate400,
+            fontSize: font.size.xs,
+            fontWeight: font.weight.semibold,
+            textTransform: 'uppercase',
+            letterSpacing: font.letterSpacing.wider,
+          }}>
+            <div style={{ flex: 1, height: 1, background: colors.slate200 }} />
+            <span>Or with email</span>
+            <div style={{ flex: 1, height: 1, background: colors.slate200 }} />
+          </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: space[4] }}>
             <Input
@@ -107,7 +133,7 @@ export default function DedicatedSignIn() {
               autoComplete="current-password"
               error={error || undefined}
             />
-            <Button type="submit" loading={loading} fullWidth size="lg" style={{ marginTop: space[2] }}>
+            <Button type="submit" loading={loading} disabled={googleLoading} fullWidth size="lg" style={{ marginTop: space[2] }}>
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
@@ -126,7 +152,6 @@ export default function DedicatedSignIn() {
           </p>
         </div>
 
-        {/* Bottom trust note */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -140,7 +165,7 @@ export default function DedicatedSignIn() {
         </div>
       </div>
 
-      {/* RIGHT — Visual panel (proof of product) */}
+      {/* RIGHT — Visual panel */}
       <div style={{
         background: colors.navy,
         display: 'flex',
@@ -151,7 +176,6 @@ export default function DedicatedSignIn() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Subtle grid background */}
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -172,7 +196,6 @@ export default function DedicatedSignIn() {
           }}>
             What you're signing into
           </div>
-
           <h2 style={{
             fontSize: font.size['4xl'],
             fontWeight: font.weight.bold,
@@ -194,7 +217,6 @@ export default function DedicatedSignIn() {
             Verified past tenants, neighbors, and buyers publicly review every listing.
           </p>
 
-          {/* Sample live thread */}
           <div style={{
             background: colors.navyDark,
             border: `1px solid ${colors.navyLine}`,
@@ -221,35 +243,15 @@ export default function DedicatedSignIn() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: space[3] }}>
-              <ThreadMessage
-                name="Maria C."
-                role="Past tenant"
-                meta="Lived here 2022–2024 · Verified"
-                time="3d ago"
-                body="Radiators make a banging noise all winter — we complained 3 times, never fixed. Otherwise the unit is solid and the light is amazing."
-              />
-              <ThreadMessage
-                name="David R."
-                role="Neighbor"
-                meta="Building resident · Verified"
-                time="1w ago"
-                body="Super is responsive. Garbage pickup on Tuesdays around 6am — FYI if you're a light sleeper."
-              />
+              <ThreadMessage name="Maria C." role="Past tenant" meta="Lived here 2022–2024 · Verified" time="3d ago"
+                body="Radiators make a banging noise all winter — we complained 3 times, never fixed. Otherwise the unit is solid and the light is amazing." />
+              <ThreadMessage name="David R." role="Neighbor" meta="Building resident · Verified" time="1w ago"
+                body="Super is responsive. Garbage pickup in the alley can get loud on Tuesdays around 6am — FYI if you're a light sleeper." />
             </div>
           </div>
 
-          {/* Trust bullets below card */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: space[2],
-            marginTop: space[8],
-          }}>
-            {[
-              'Verified reviewers only',
-              'No paid placement',
-              'Free for every buyer and renter',
-            ].map((item, i) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: space[2], marginTop: space[8] }}>
+            {['Verified reviewers only', 'No paid placement', 'Free for every buyer and renter'].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: space[2], fontSize: font.size.sm, color: colors.slate300 }}>
                 <CheckCircle2 size={14} color={colors.brand} />
                 {item}
@@ -264,32 +266,18 @@ export default function DedicatedSignIn() {
 
 function ThreadMessage({ name, role, meta, time, body }) {
   return (
-    <div style={{
-      background: colors.navy,
-      border: `1px solid ${colors.navyLineSoft}`,
-      borderRadius: radius.lg,
-      padding: space[3],
-    }}>
+    <div style={{ background: colors.navy, border: `1px solid ${colors.navyLineSoft}`, borderRadius: radius.lg, padding: space[3] }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: space[2] }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: space[2] }}>
           <Avatar name={name} size={26} />
           <div>
-            <div style={{ fontSize: font.size.xs, fontWeight: font.weight.bold, color: colors.white }}>
-              {name} · {role}
-            </div>
+            <div style={{ fontSize: font.size.xs, fontWeight: font.weight.bold, color: colors.white }}>{name} · {role}</div>
             <div style={{ fontSize: 10, color: colors.slate400 }}>{meta}</div>
           </div>
         </div>
         <div style={{ fontSize: 10, color: colors.slate400 }}>{time}</div>
       </div>
-      <p style={{
-        fontSize: font.size.sm,
-        color: colors.slate300,
-        lineHeight: font.lineHeight.relaxed,
-        margin: 0,
-      }}>
-        {body}
-      </p>
+      <p style={{ fontSize: font.size.sm, color: colors.slate300, lineHeight: font.lineHeight.relaxed, margin: 0 }}>{body}</p>
     </div>
   )
 }
