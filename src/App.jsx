@@ -10,6 +10,7 @@ import AddListing from './pages/AddListing'
 import Profile from './pages/Profile'
 import ProfileEdit from './pages/ProfileEdit'
 import Messages from './pages/Messages'
+import Saved from './pages/Saved'
 import Dashboard from './pages/Dashboard'
 import LandlordDashboard from './pages/LandlordDashboard'
 import ManagerDashboard from './pages/ManagerDashboard'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/listings" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/listing/:id" element={<ListingDetail />} />
+        <Route path="/saved" element={<ProtectedRoute><Saved /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/my-property" element={<ProtectedRoute><LandlordDashboard /></ProtectedRoute>} />

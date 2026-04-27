@@ -309,6 +309,12 @@ export default function TopNav() {
             Listings
           </Link>
 
+          {user && (
+            <Link to="/saved" style={{ ...styles.link, ...(isActive('/saved') ? styles.linkActive : {}) }}>
+              Saved
+            </Link>
+          )}
+
           {['agent', 'broker'].includes(profile?.account_type) && (
             <Link to="/dashboard" style={{ ...styles.link, ...(isActive('/dashboard') ? styles.linkActive : {}) }}>
               Dashboard
