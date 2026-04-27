@@ -796,12 +796,6 @@ export default function Profile() {
           { icon: <Icon.Bolt/>, label: 'Avg Close Time', value: h.avg_close_time }
         ]} license={profile.license_number} isOwn={isOwn}/>}
 
-        {profile.account_type === 'landlord' && <HighlightsCard title="Landlord" items={[
-          { icon: <Icon.Briefcase/>, label: 'Company', value: profile.company },
-          { icon: <Icon.Home/>, label: 'Properties', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
-          { icon: <Icon.Calendar/>, label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }
-        ]} isOwn={isOwn}/>}
-
         {profile.account_type === 'management' && <HighlightsCard title="Property Management" items={[
           { icon: <Icon.Briefcase/>, label: 'Company', value: profile.company },
           { icon: <Icon.Building/>, label: 'Portfolio Size', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
