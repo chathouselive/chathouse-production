@@ -106,7 +106,16 @@ export default function Messages() {
 
     if (!data || data.length === 0) { setConversations([]); setLoading(false); return }
 
-    const otherUserIds = data.map(c => c.user1_id === user.id ? c.user2_id : c.user1_id)
+    // Filter out conversations the current user has deleted (per-user soft delete).
+    // Auto-restore happens DB-side via on_message_inserted_undelete trigger.
+    const visible = data.filter(c => {
+      if (c.user1_id === user.id) return !c.deleted_by_user1
+      return !c.deleted_by_user2
+    })
+
+    if (visible.length === 0) { setConversations([]); setLoading(false); return }
+
+    const otherUserIds = visible.map(c => c.user1_id === user.id ? c.user2_id : c.user1_id)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name, photo_url, account_type')
@@ -116,7 +125,7 @@ export default function Messages() {
     profiles?.forEach(p => { profileMap[p.id] = p })
 
     // Get unread counts
-    const convIds = data.map(c => c.id)
+    const convIds = visible.map(c => c.id)
     const { data: unreadData } = await supabase
       .from('messages')
       .select('conversation_id')
@@ -141,7 +150,7 @@ export default function Messages() {
       if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m
     })
 
-    const enriched = data.map(c => {
+    const enriched = visible.map(c => {
       const otherId = c.user1_id === user.id ? c.user2_id : c.user1_id
       return {
         ...c,
@@ -201,6 +210,35 @@ export default function Messages() {
     setConversations(prev => prev.map(c =>
       c.id === convId ? { ...c, unread: 0 } : c
     ))
+  }
+
+  async function handleDeleteThread() {
+    if (!activeConv) return
+    const otherName = activeConv.other_user?.name?.split(' ')[0] || 'this person'
+    const confirmed = window.confirm(
+      `Delete this conversation? You'll stop seeing it in your inbox unless ${otherName} messages you again.`
+    )
+    if (!confirmed) return
+
+    // Flip the per-user deletion flag — only the current user's side
+    const updateField = activeConv.user1_id === user.id
+      ? { deleted_by_user1: true }
+      : { deleted_by_user2: true }
+
+    const { error } = await supabase
+      .from('conversations')
+      .update(updateField)
+      .eq('id', activeConv.id)
+
+    if (error) {
+      console.error('[Messages] delete thread failed:', error)
+      return
+    }
+
+    // Close the active thread, clear its messages, refetch the inbox
+    setActiveConv(null)
+    setMessages([])
+    fetchConversations()
   }
 
   async function sendMessage() {
@@ -370,7 +408,19 @@ export default function Messages() {
                       </div>
                     </div>
                   </Link>
-                  <Link to={`/profile/${activeConv.other_user.id}`} style={styles.viewProfileBtn}>View profile →</Link>
+                  <div style={styles.threadHeaderActions}>
+                    <Link to={`/profile/${activeConv.other_user.id}`} style={styles.viewProfileBtn}>View profile →</Link>
+                    <button
+                      onClick={handleDeleteThread}
+                      style={styles.deleteThreadBtn}
+                      title="Delete conversation"
+                      aria-label="Delete conversation"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Messages */}
@@ -475,6 +525,15 @@ const styles = {
   threadAvatar: { width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg, #1a6cf5, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   threadAvatarInitial: { color: '#fff', fontSize: 16, fontWeight: 700 },
   viewProfileBtn: { fontSize: 12, color: '#1a6cf5', fontWeight: 700, textDecoration: 'none' },
+  threadHeaderActions: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 },
+  deleteThreadBtn: {
+    width: 32, height: 32,
+    border: 'none', background: 'transparent',
+    borderRadius: 8, cursor: 'pointer',
+    color: '#94a3b8',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'background 120ms ease, color 120ms ease',
+  },
   messageList: { flex: 1, overflowY: 'auto', padding: '20px 20px 10px', display: 'flex', flexDirection: 'column', gap: 2 },
   inputRow: { display: 'flex', gap: 8, padding: '12px 16px', borderTop: '1.5px solid #e2e8f0', alignItems: 'flex-end', flexShrink: 0 },
   messageInput: { flex: 1, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 20, fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', background: '#f8fafc', color: '#0f172a', maxHeight: 120, overflowY: 'auto' },
