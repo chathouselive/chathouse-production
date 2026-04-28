@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import NotificationBell from './NotificationBell'
+import UserSearch from './UserSearch'
 
 /* ============================================================
    Chathouse logo (unchanged)
@@ -204,15 +205,11 @@ export default function TopNav() {
     let cancelled = false
 
     async function fetchLinks() {
-      console.log('[TopNav] Fetching links for user:', user.id)
-
       const { data: links, error } = await supabase
         .from('representation_requests')
         .select('agent_id, lead_user_id, status')
         .eq('status', 'accepted')
         .eq('lead_user_id', user.id)
-
-      console.log('[TopNav] representation_requests rows:', { links, error })
 
       if (cancelled) return
       if (error || !links || links.length === 0) {
@@ -222,8 +219,6 @@ export default function TopNav() {
       }
 
       const agentIds = links.map(r => r.agent_id).filter(Boolean)
-      console.log('[TopNav] Agent IDs to fetch:', agentIds)
-
       if (agentIds.length === 0) {
         setLinkedAgent(null)
         setLinkedBroker(null)
@@ -235,8 +230,6 @@ export default function TopNav() {
         .select('id, name, photo_url, account_type')
         .in('id', agentIds)
 
-      console.log('[TopNav] linked profiles:', { profiles, profilesError })
-
       if (cancelled) return
       if (profilesError || !profiles) {
         setLinkedAgent(null)
@@ -247,19 +240,15 @@ export default function TopNav() {
       const agent = profiles.find(p => p.account_type === 'agent') || null
       const broker = profiles.find(p => p.account_type === 'broker') || null
 
-      console.log('[TopNav] Setting linkedAgent:', agent, 'linkedBroker:', broker)
-
       setLinkedAgent(agent)
       setLinkedBroker(broker)
     }
 
     fetchLinks()
     return () => { cancelled = true }
-  }, [user, isBuyer, dropdownOpen]) // refetch when dropdown opens
+  }, [user, isBuyer, dropdownOpen])
 
-  /* ----- Unlink handler -----
-     Updates representation_requests.status from 'accepted' to 'unlinked'.
-     Covers both directions in case of any data oddity. */
+  /* ----- Unlink handler ----- */
   async function handleUnlink(personId, role) {
     if (!user || !personId) return
     setUnlinking(role)
@@ -342,6 +331,9 @@ export default function TopNav() {
 
         {/* ===== Right cluster ===== */}
         <div style={styles.right}>
+          {/* User search — available to all viewers (signed-out gets pros only) */}
+          <UserSearch />
+
           {user ? (
             <>
               <NotificationBell />
@@ -428,7 +420,6 @@ function ProfileDropdown({ profile, isBuyer, linkedAgent, linkedBroker, unlinkin
       </div>
 
       {/* ----- Stats row ----- */}
-      {/* TODO wire these up to real DB counts (saved listings, comments, likes) */}
       <div style={ddStyles.stats}>
         <Stat label="Saved" value={0} />
         <Stat label="Comments" value={0} />
@@ -491,12 +482,6 @@ function Stat({ label, value }) {
   )
 }
 
-/* ============================================================
-   Styles
-   Note: userBadge uses longhand borderWidth/borderStyle/borderColor
-   instead of shorthand `border` to avoid React's warning about
-   mixing shorthand with property overrides.
-   ============================================================ */
 const styles = {
   nav: {
     position: 'sticky', top: 0, zIndex: 50,
@@ -626,7 +611,7 @@ const ddStyles = {
   },
 }
 
-/* Inject the dropdown animation keyframes once */
+/* Inject the dropdown animation keyframes once — shared with UserSearch */
 if (typeof document !== 'undefined' && !document.getElementById('chathouse-topnav-anim')) {
   const styleEl = document.createElement('style')
   styleEl.id = 'chathouse-topnav-anim'

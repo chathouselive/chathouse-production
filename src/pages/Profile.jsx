@@ -141,7 +141,7 @@ const Icon = {
       <circle cx="12" cy="15" r="6"/><path d="M9 9.5L7 2h10l-2 7.5"/>
     </svg>
   ),
-  /* POLISH: verified checkmark — solid blue with white check inside */
+  /* Verified checkmark — solid blue with white check inside */
   Verified: ({ size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 2.5c.6 0 1.18.18 1.66.52l1.34.95c.27.19.6.29.93.27l1.64-.07c1.18-.05 2.18.85 2.23 2.03l.07 1.64c.01.33.13.65.33.91l1 1.3a2.13 2.13 0 0 1 0 2.6l-1 1.3c-.2.26-.32.58-.33.91l-.07 1.64c-.05 1.18-1.05 2.08-2.23 2.03l-1.64-.07c-.33-.02-.66.08-.93.27l-1.34.95a2.13 2.13 0 0 1-2.32 0l-1.34-.95a1.59 1.59 0 0 0-.93-.27l-1.64.07c-1.18.05-2.18-.85-2.23-2.03l-.07-1.64a1.59 1.59 0 0 0-.33-.91l-1-1.3a2.13 2.13 0 0 1 0-2.6l1-1.3c.2-.26.32-.58.33-.91l.07-1.64c.05-1.18 1.05-2.08 2.23-2.03l1.64.07c.33.02.66-.08.93-.27l1.34-.95A2.13 2.13 0 0 1 12 2.5Z" fill="#1a6cf5"/>
@@ -208,7 +208,7 @@ function Avatar({ profile, size = 32 }) {
 }
 
 /* ============================================================
-   POLISH: format created_at as "Member since Mar 2025"
+   format created_at as "Member since Mar 2025"
    ============================================================ */
 function formatJoinedDate(isoString) {
   if (!isoString) return null
@@ -226,6 +226,8 @@ const POST_PLACEHOLDERS = {
   management: 'Share a portfolio update or property management insight...',
   buyer: "Share what you're looking for or your experience so far...",
 }
+
+const PRO_ROLES = ['agent', 'broker', 'landlord', 'management']
 
 function getAchievements(accountType, stats) {
   const { clientLinks, commentLikes, avgRating, firstComment, commentedListings, friendCount, claimedProperties } = stats
@@ -249,6 +251,88 @@ function getAchievements(accountType, stats) {
   return all
 }
 
+/* ============================================================
+   Set Open Graph + Twitter Card meta tags for shareable links
+   Direct DOM manipulation — no need for react-helmet-async dependency
+   ============================================================ */
+function useProfileMeta(profile) {
+  useEffect(() => {
+    if (!profile) return
+
+    const name = profile.name || 'Chathouse member'
+    const role = ROLE_STYLES[profile.account_type]?.label || 'Member'
+    const city = profile.city ? ` in ${profile.city}` : ''
+    const company = profile.company ? ` at ${profile.company}` : ''
+
+    const title = `${name} · ${role} on Chathouse`
+    const description = profile.bio
+      ? profile.bio.slice(0, 160)
+      : `${name} is ${['agent','broker'].includes(profile.account_type) ? 'an' : 'a'} ${role.toLowerCase()}${company}${city} on Chathouse — see verified comments and reviews from neighbors and clients.`
+    const image = profile.photo_url || 'https://chathouselive.com/og-default.png'
+    const url = typeof window !== 'undefined' ? window.location.href : `https://chathouselive.com/profile/${profile.id}`
+
+    /* Helper to set or create a meta tag */
+    const setMeta = (selector, attr, content) => {
+      let tag = document.querySelector(selector)
+      if (!tag) {
+        tag = document.createElement('meta')
+        const [keyAttr, keyValue] = selector.replace(/[\[\]"]/g, '').split('=')
+        tag.setAttribute(keyAttr, keyValue)
+        document.head.appendChild(tag)
+      }
+      tag.setAttribute(attr, content)
+    }
+
+    /* Page title */
+    document.title = title
+
+    /* Open Graph */
+    setMeta('meta[property="og:title"]', 'content', title)
+    setMeta('meta[property="og:description"]', 'content', description)
+    setMeta('meta[property="og:image"]', 'content', image)
+    setMeta('meta[property="og:url"]', 'content', url)
+    setMeta('meta[property="og:type"]', 'content', 'profile')
+    setMeta('meta[property="og:site_name"]', 'content', 'Chathouse')
+
+    /* Twitter Card */
+    setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image')
+    setMeta('meta[name="twitter:title"]', 'content', title)
+    setMeta('meta[name="twitter:description"]', 'content', description)
+    setMeta('meta[name="twitter:image"]', 'content', image)
+
+    /* Standard description */
+    setMeta('meta[name="description"]', 'content', description)
+
+    /* Cleanup on unmount — restore the default title */
+    return () => {
+      document.title = 'Chathouse — Find. Talk. Move.'
+    }
+  }, [profile])
+}
+
+/* ============================================================
+   Signed-Out Gate Card — shown over the body when a signed-out
+   visitor lands on a consumer (buyer/renter) profile
+   ============================================================ */
+function SignedOutGate({ profileName }) {
+  return (
+    <div style={gateStyles.overlay}>
+      <div style={gateStyles.card}>
+        <div style={gateStyles.iconWrap}><Icon.Lock size={26}/></div>
+        <h3 style={gateStyles.title}>See {profileName?.split(' ')[0] || 'this member'}'s full profile</h3>
+        <p style={gateStyles.sub}>
+          Sign up free to view full member profiles, message verified neighbors, and join the Chathouse community.
+        </p>
+        <div style={gateStyles.buttons}>
+          <Link to="/signup" style={gateStyles.signUp}>Sign up free →</Link>
+          <Link to="/signin" style={gateStyles.signIn}>Sign in</Link>
+        </div>
+        <p style={gateStyles.fine}>Free for buyers, renters, and neighbors · Always will be</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const { userId } = useParams()
   const navigate = useNavigate()
@@ -258,8 +342,19 @@ export default function Profile() {
   const isPro = ['agent', 'broker'].includes(profile?.account_type)
   const isManagement = profile?.account_type === 'management'
   const hasReviews = isPro || isManagement
-  /* POLISH: verified = pro role with a license number on file */
   const isVerified = isPro && !!profile?.license_number
+
+  /* Set Open Graph meta tags for shareable links */
+  useProfileMeta(profile)
+
+  /* ============================================================
+     SIGNED-OUT GATE
+     If a signed-out viewer lands on a consumer (buyer/renter) profile,
+     we show only basic info above + blur the body with a sign-up CTA.
+     Pro profiles (agent/broker/landlord/management) are fully public.
+     ============================================================ */
+  const isConsumerProfile = profile && !PRO_ROLES.includes(profile.account_type)
+  const showSignedOutGate = !user && isConsumerProfile
 
   const [activeTab, setActiveTab] = useState('updates')
 
@@ -299,23 +394,24 @@ export default function Profile() {
 
   const [achievementStats, setAchievementStats] = useState({ clientLinks: 0, commentLikes: 0, avgRating: 0, firstComment: false, commentedListings: 0, friendCount: 0, claimedProperties: 0 })
 
+  /* All data-fetching effects skip when the gate is up.
+     We only need basic profile info for the gated header. */
   useEffect(() => {
-    if (!userId) return
+    if (!userId || showSignedOutGate) return
     fetchPosts()
     fetchFriends()
     if (user && !isOwn) checkConnectionStatus()
     if (user && isOwn) fetchFollowPreferences()
-  }, [userId, user])
+  }, [userId, user, showSignedOutGate])
 
   useEffect(() => {
-    if (profile) {
-      if (isPro) fetchClientLinksCount()
-      if (hasReviews) fetchReviews()
-      fetchAchievementStats()
-      if (user && !isOwn) checkLinkStatus()
-      if (user && isOwn) fetchRequests()
-    }
-  }, [profile])
+    if (!profile || showSignedOutGate) return
+    if (isPro) fetchClientLinksCount()
+    if (hasReviews) fetchReviews()
+    fetchAchievementStats()
+    if (user && !isOwn) checkLinkStatus()
+    if (user && isOwn) fetchRequests()
+  }, [profile, showSignedOutGate])
 
   async function fetchClientLinksCount() {
     const { count } = await supabase
@@ -593,9 +689,7 @@ export default function Profile() {
   const totalRequests = friendRequests.length + linkRequests.length
   const achievements = getAchievements(profile.account_type, { ...achievementStats, clientLinks: clientLinksCount, avgRating, friendCount: friends.length })
   const earnedCount = achievements.filter(a => a.earned).length
-  /* POLISH: pre-compute the joined-date string once */
   const joinedDate = formatJoinedDate(profile.created_at)
-  /* POLISH: buyer-only flag — used for "Moving in" relocation into looking-for card */
   const isBuyer = profile.account_type === 'buyer' || profile.account_type === 'renter'
 
   const TabButton = ({ id, icon, label, count, hasBadge }) => (
@@ -614,32 +708,25 @@ export default function Profile() {
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <TopNav />
       <div style={styles.page}>
-        <Link to="/listings" style={styles.back}>
+        <Link to={user ? "/listings" : "/"} style={styles.back}>
           <Icon.ArrowLeft size={13}/> Back
         </Link>
 
-        {/* ========== Header card ========== */}
+        {/* ========== Header card (always visible) ========== */}
         <div style={styles.card}>
           <div style={styles.banner}/>
 
           <div style={styles.headerInner}>
-            {/* Avatar — overlaps banner from below */}
             <div style={styles.avatarWrap}>
               <Avatar profile={profile} size={96}/>
             </div>
 
-            {/* Name + metadata + actions row */}
             <div style={styles.identityRow}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={styles.nameLine}>
                   <h1 style={styles.name}>{profile.name}</h1>
-                  {/* POLISH: verified checkmark — only for pros with a license number */}
                   {isVerified && (
-                    <span
-                      style={styles.verifiedWrap}
-                      title="Verified — license number on file"
-                      aria-label="Verified — license number on file"
-                    >
+                    <span style={styles.verifiedWrap} title="Verified — license number on file" aria-label="Verified — license number on file">
                       <Icon.Verified size={18}/>
                     </span>
                   )}
@@ -661,72 +748,74 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Action buttons cluster */}
-              <div style={styles.actionsCluster}>
-                {isOwn && (
-                  <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>
-                    <Icon.Pencil size={13}/> Edit profile
-                  </button>
-                )}
-                {!isOwn && user && (
-                  <>
-                    <Link to={`/messages?user=${userId}`} style={{ ...styles.actionBtn, ...styles.actionBtnSecondary }}>
-                      <Icon.Message size={13}/> Message
-                    </Link>
+              {/* Action buttons cluster — hidden when gate is up */}
+              {!showSignedOutGate && (
+                <div style={styles.actionsCluster}>
+                  {isOwn && (
+                    <button onClick={() => navigate('/profile/edit')} style={styles.editBtn}>
+                      <Icon.Pencil size={13}/> Edit profile
+                    </button>
+                  )}
+                  {!isOwn && user && (
+                    <>
+                      <Link to={`/messages?user=${userId}`} style={{ ...styles.actionBtn, ...styles.actionBtnSecondary }}>
+                        <Icon.Message size={13}/> Message
+                      </Link>
 
-                    {connectionStatus === null && (
-                      <button onClick={sendFriendRequest} style={styles.actionBtn}>
-                        <Icon.Users size={13}/> Add Friend
-                      </button>
-                    )}
-                    {connectionStatus === 'sent' && (
-                      <button disabled style={{ ...styles.actionBtn, ...styles.actionBtnDisabled }}>
-                        <Icon.Clock size={13}/> Request Sent
-                      </button>
-                    )}
-                    {connectionStatus === 'pending' && (
-                      <button onClick={acceptFriendRequest} style={{ ...styles.actionBtn, background: '#16a34a' }}>
-                        <Icon.Check size={13}/> Accept Request
-                      </button>
-                    )}
-                    {connectionStatus === 'accepted' && (
-                      <button onClick={() => unfriend(connectionId)} style={{ ...styles.actionBtn, ...styles.actionBtnSecondary }}>
-                        <Icon.Users size={13}/> Friends
-                      </button>
-                    )}
+                      {connectionStatus === null && (
+                        <button onClick={sendFriendRequest} style={styles.actionBtn}>
+                          <Icon.Users size={13}/> Add Friend
+                        </button>
+                      )}
+                      {connectionStatus === 'sent' && (
+                        <button disabled style={{ ...styles.actionBtn, ...styles.actionBtnDisabled }}>
+                          <Icon.Clock size={13}/> Request Sent
+                        </button>
+                      )}
+                      {connectionStatus === 'pending' && (
+                        <button onClick={acceptFriendRequest} style={{ ...styles.actionBtn, background: '#16a34a' }}>
+                          <Icon.Check size={13}/> Accept Request
+                        </button>
+                      )}
+                      {connectionStatus === 'accepted' && (
+                        <button onClick={() => unfriend(connectionId)} style={{ ...styles.actionBtn, ...styles.actionBtnSecondary }}>
+                          <Icon.Users size={13}/> Friends
+                        </button>
+                      )}
 
-                    {(() => {
-                      const viewerIsPro = ['agent','broker'].includes(viewerProfile?.account_type)
-                      const targetIsManagement = profile.account_type === 'management'
-                      const showLink = viewerIsPro ? !targetIsManagement : isPro
-                      if (!showLink) return null
-                      return (
-                        <>
-                          {linkStatus === null && (
-                            <button onClick={() => setShowLinkForm(f => !f)} style={{ ...styles.actionBtn, background: '#f97316' }}>
-                              <Icon.Link size={13}/> Request Link
-                            </button>
-                          )}
-                          {linkStatus === 'sent' && (
-                            <button disabled style={{ ...styles.actionBtn, ...styles.actionBtnDisabled }}>
-                              <Icon.Clock size={13}/> Link Requested
-                            </button>
-                          )}
-                          {linkStatus === 'accepted' && (
-                            <button onClick={unlinkRequest} style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', borderWidth: 1, borderStyle: 'solid', borderColor: '#bbf7d0' }}>
-                              <Icon.Link size={13}/> Linked
-                            </button>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </>
-                )}
-              </div>
+                      {(() => {
+                        const viewerIsPro = ['agent','broker'].includes(viewerProfile?.account_type)
+                        const targetIsManagement = profile.account_type === 'management'
+                        const showLink = viewerIsPro ? !targetIsManagement : isPro
+                        if (!showLink) return null
+                        return (
+                          <>
+                            {linkStatus === null && (
+                              <button onClick={() => setShowLinkForm(f => !f)} style={{ ...styles.actionBtn, background: '#f97316' }}>
+                                <Icon.Link size={13}/> Request Link
+                              </button>
+                            )}
+                            {linkStatus === 'sent' && (
+                              <button disabled style={{ ...styles.actionBtn, ...styles.actionBtnDisabled }}>
+                                <Icon.Clock size={13}/> Link Requested
+                              </button>
+                            )}
+                            {linkStatus === 'accepted' && (
+                              <button onClick={unlinkRequest} style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', borderWidth: 1, borderStyle: 'solid', borderColor: '#bbf7d0' }}>
+                                <Icon.Link size={13}/> Linked
+                              </button>
+                            )}
+                          </>
+                        )
+                      })()}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Inline link request form */}
-            {showLinkForm && !isOwn && (
+            {showLinkForm && !isOwn && !showSignedOutGate && (
               <div style={styles.linkForm}>
                 <div style={styles.linkFormTitle}>
                   Request {profile.name?.split(' ')[0]} as your {profile.account_type === 'agent' ? 'agent' : 'mortgage broker'}
@@ -753,425 +842,462 @@ export default function Profile() {
               </div>
             )}
 
-            {/* Bio */}
+            {/* Bio — visible to everyone */}
             {profile.bio
               ? <p style={styles.bio}>{profile.bio}</p>
               : isOwn ? <p style={styles.bioPlaceholder}>Add a bio so others know who you are.</p> : null}
-
-            {/* Stats row */}
-            <div style={styles.statsRow}>
-              <div style={styles.stat}><div style={styles.statNum}>{posts.length}</div><div style={styles.statLabel}>Updates</div></div>
-              <div style={styles.stat}><div style={styles.statNum}>{friends.length}</div><div style={styles.statLabel}>Friends</div></div>
-              {isPro && <div style={styles.stat}><div style={styles.statNum}>{clientLinksCount}</div><div style={styles.statLabel}>Clients</div></div>}
-              {hasReviews && avgRating > 0 && (
-                <div style={styles.stat}>
-                  <div style={{ ...styles.statNum, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {avgRating}<Icon.Star size={14} filled/>
-                  </div>
-                  <div style={styles.statLabel}>Rating</div>
-                </div>
-              )}
-              {hasReviews && <div style={styles.stat}><div style={styles.statNum}>{reviews.length}</div><div style={styles.statLabel}>Reviews</div></div>}
-              <div style={styles.stat}><div style={styles.statNum}>{earnedCount}</div><div style={styles.statLabel}>Badges</div></div>
-            </div>
           </div>
         </div>
 
-        {/* ========== Highlights cards ========== */}
-        {profile.account_type === 'agent' && <HighlightsCard title="Agent Highlights" items={[
-          { icon: <Icon.Building/>, label: 'Market', value: h.market },
-          { icon: <Icon.Calendar/>, label: 'Experience', value: h.experience },
-          { icon: <Icon.Home/>, label: 'Deals Closed', value: h.deals_closed },
-          { icon: <Icon.Star/>, label: 'Avg Rating', value: h.avg_rating },
-          { icon: <Icon.Briefcase/>, label: 'Brokerage', value: profile.company || h.brokerage },
-          { icon: <Icon.GradCap/>, label: 'Specialty', value: h.specialty }
-        ]} license={profile.license_number} isOwn={isOwn}/>}
-
-        {profile.account_type === 'broker' && <HighlightsCard title="Broker Highlights" items={[
-          { icon: <Icon.Briefcase/>, label: 'Lender', value: profile.company || h.lender },
-          { icon: <Icon.Calendar/>, label: 'Experience', value: h.experience },
-          { icon: <Icon.Document/>, label: 'Loans Closed', value: h.loans_closed },
-          { icon: <Icon.Star/>, label: 'Avg Rating', value: h.avg_rating },
-          { icon: <Icon.Dollar/>, label: 'Loan Types', value: h.loan_types },
-          { icon: <Icon.Bolt/>, label: 'Avg Close Time', value: h.avg_close_time }
-        ]} license={profile.license_number} isOwn={isOwn}/>}
-
-        {profile.account_type === 'management' && <HighlightsCard title="Property Management" items={[
-          { icon: <Icon.Briefcase/>, label: 'Company', value: profile.company },
-          { icon: <Icon.Building/>, label: 'Portfolio Size', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
-          { icon: <Icon.Calendar/>, label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }
-        ]} isOwn={isOwn}/>}
-
-        {/* POLISH: buyer card now hosts the "Moving in" timeline */}
-        {isBuyer && (profile.looking_for || profile.move_timeline) && (
-          <div style={styles.card}>
-            <div style={{ padding: 24 }}>
-              <h2 style={styles.h2}>What I'm looking for</h2>
-              {profile.move_timeline && (
-                <div style={styles.timelineRow}>
-                  <Icon.Clock size={13}/>
-                  <span>Moving in {profile.move_timeline}</span>
+        {/* ============================================================
+            BLURRED-GATE BODY (signed-out + consumer profile)
+            ============================================================ */}
+        {showSignedOutGate ? (
+          <div style={gateStyles.gateWrap}>
+            <div style={gateStyles.blurredBody}>
+              {/* Fake content behind the blur — purely cosmetic placeholder */}
+              <div style={styles.card}>
+                <div style={{ padding: 24 }}>
+                  <h2 style={styles.h2}>What I'm looking for</h2>
+                  <p style={styles.lookingFor}>Looking for a 2-bedroom apartment in a quiet neighborhood with good public transportation. Budget around $X,XXX/month. Move-in flexible.</p>
                 </div>
-              )}
-              {profile.looking_for && <p style={styles.lookingFor}>{profile.looking_for}</p>}
+              </div>
+              <div style={styles.card}>
+                <div style={{ padding: 24 }}>
+                  <h2 style={styles.h2}>Recent activity</h2>
+                  <div style={{ height: 80, background: '#f1f5f9', borderRadius: 10, marginBottom: 12 }}/>
+                  <div style={{ height: 80, background: '#f1f5f9', borderRadius: 10 }}/>
+                </div>
+              </div>
             </div>
+            <SignedOutGate profileName={profile.name}/>
           </div>
-        )}
-
-        {/* ========== Tabs card ========== */}
-        <div style={styles.card}>
-          <div style={styles.tabRow}>
-            <TabButton id="updates" icon={<Icon.Document/>} label="Updates" count={posts.length}/>
-            <TabButton id="friends" icon={<Icon.Users/>} label="Friends" count={friends.length}/>
-            {isPro && <TabButton id="links" icon={<Icon.Link/>} label="Client Links" count={clientLinksCount}/>}
-            {hasReviews && <TabButton id="reviews" icon={<Icon.Star/>} label="Reviews" count={reviews.length}/>}
-            <TabButton id="achievements" icon={<Icon.Trophy/>} label="Achievements" count={earnedCount}/>
-            {isOwn && <TabButton id="requests" icon={<Icon.Inbox/>} label="Requests" count={totalRequests} hasBadge/>}
-          </div>
-
-          <div style={{ padding: '0 24px 24px' }}>
-
-            {/* Updates */}
-            {activeTab === 'updates' && (
-              <>
-                {isOwn && (
-                  <div style={styles.composerInner}>
-                    <Avatar profile={profile} size={38}/>
-                    <div style={{ flex: 1 }}>
-                      <textarea value={postContent} onChange={e => setPostContent(e.target.value)} placeholder={placeholder} style={styles.composerInput} rows={3}/>
-                      {postError && <div style={styles.postError}>{postError}</div>}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                        <button onClick={handlePost} disabled={posting || !postContent.trim()} style={{ ...styles.postBtn, opacity: posting || !postContent.trim() ? 0.5 : 1 }}>{posting ? 'Posting...' : 'Post'}</button>
+        ) : (
+          <>
+            {/* Stats row — only for authorized viewers */}
+            <div style={styles.card}>
+              <div style={{ padding: '20px 24px' }}>
+                <div style={styles.statsRow}>
+                  <div style={styles.stat}><div style={styles.statNum}>{posts.length}</div><div style={styles.statLabel}>Updates</div></div>
+                  <div style={styles.stat}><div style={styles.statNum}>{friends.length}</div><div style={styles.statLabel}>Friends</div></div>
+                  {isPro && <div style={styles.stat}><div style={styles.statNum}>{clientLinksCount}</div><div style={styles.statLabel}>Clients</div></div>}
+                  {hasReviews && avgRating > 0 && (
+                    <div style={styles.stat}>
+                      <div style={{ ...styles.statNum, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {avgRating}<Icon.Star size={14} filled/>
                       </div>
+                      <div style={styles.statLabel}>Rating</div>
                     </div>
-                  </div>
-                )}
-                {postsLoading
-                  ? <div style={styles.loadingText}>Loading...</div>
-                  : posts.length === 0
-                    ? <EmptyState icon={<Icon.Document size={28}/>} title="No updates yet" sub={isOwn ? 'Share your first update above.' : 'No updates posted yet.'}/>
-                    : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-                        {posts.map(post => (
-                          <div key={post.id} style={styles.postCard}>
-                            <div style={styles.postHeader}>
-                              <Avatar profile={profile} size={36}/>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  <span style={styles.postName}>{profile.name}</span>
-                                  <RolePill accountType={profile.account_type} size="sm"/>
-                                  <span style={styles.postTime}>{timeAgo(post.created_at)}</span>
-                                </div>
-                              </div>
-                              {isOwn && (
-                                <button onClick={() => handleDeletePost(post.id)} style={styles.deleteBtn} aria-label="Delete post">
-                                  <Icon.Trash/>
-                                </button>
-                              )}
-                            </div>
-                            <p style={styles.postContent}>{post.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                }
-              </>
-            )}
+                  )}
+                  {hasReviews && <div style={styles.stat}><div style={styles.statNum}>{reviews.length}</div><div style={styles.statLabel}>Reviews</div></div>}
+                  <div style={styles.stat}><div style={styles.statNum}>{earnedCount}</div><div style={styles.statLabel}>Badges</div></div>
+                </div>
+              </div>
+            </div>
 
-            {/* Friends */}
-            {activeTab === 'friends' && (
-              <>
-                {friendsLoading
-                  ? <div style={styles.loadingText}>Loading...</div>
-                  : friends.length === 0
-                    ? <EmptyState icon={<Icon.Users size={28}/>} title="No friends yet" sub={isOwn ? 'Connect with people you meet in listing conversations.' : 'No connections yet.'}/>
-                    : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-                        {friends.map(friend => (
-                          <div key={friend.id} style={styles.friendCard}>
-                            <Link to={`/profile/${friend.id}`} style={styles.friendLeft}>
-                              <Avatar profile={friend} size={48}/>
-                              <div>
-                                <div style={styles.friendName}>{friend.name}</div>
-                                {friend.city && (
-                                  <div style={styles.friendCity}>
-                                    <Icon.Pin size={11}/> {friend.city}
-                                  </div>
-                                )}
-                                <div style={{ marginTop: 4 }}>
-                                  <RolePill accountType={friend.account_type} size="sm"/>
-                                </div>
-                              </div>
-                            </Link>
-                            <div style={styles.friendActions}>
-                              <Link to={`/messages?user=${friend.id}`} style={styles.messageBtn}>
-                                <Icon.Message size={12}/> Message
-                              </Link>
-                              {isOwn && (
-                                <button
-                                  onClick={() => toggleFollowFriend(friend.connectionId, followingFriends[friend.connectionId])}
-                                  style={{
-                                    ...styles.unfriendBtn,
-                                    color: followingFriends[friend.connectionId] ? '#1a6cf5' : '#94a3b8',
-                                    background: followingFriends[friend.connectionId] ? '#e8f0fe' : '#f1f5f9',
-                                  }}
-                                  title={followingFriends[friend.connectionId] ? 'Turn off post notifications' : 'Get notified when they post'}
-                                >
-                                  {followingFriends[friend.connectionId] ? <Icon.BellOn size={12}/> : <Icon.BellOff size={12}/>}
-                                  {followingFriends[friend.connectionId] ? 'Notifying' : 'Notify me'}
-                                </button>
-                              )}
-                              {isOwn && <button onClick={() => unfriend(friend.connectionId)} style={styles.unfriendBtn}>Unfriend</button>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                }
-              </>
-            )}
+            {/* ========== Highlights cards ========== */}
+            {profile.account_type === 'agent' && <HighlightsCard title="Agent Highlights" items={[
+              { icon: <Icon.Building/>, label: 'Market', value: h.market },
+              { icon: <Icon.Calendar/>, label: 'Experience', value: h.experience },
+              { icon: <Icon.Home/>, label: 'Deals Closed', value: h.deals_closed },
+              { icon: <Icon.Star/>, label: 'Avg Rating', value: h.avg_rating },
+              { icon: <Icon.Briefcase/>, label: 'Brokerage', value: profile.company || h.brokerage },
+              { icon: <Icon.GradCap/>, label: 'Specialty', value: h.specialty }
+            ]} license={profile.license_number} isOwn={isOwn}/>}
 
-            {/* Client Links */}
-            {activeTab === 'links' && isPro && (
-              <div style={styles.linksTab}>
-                <div style={styles.linksCount}>{clientLinksCount}</div>
-                <div style={styles.linksTitle}>Active Client Links</div>
-                <div style={styles.linksSub}>{profile.account_type === 'agent' ? 'Buyers who have linked this agent to their Chathouse profile' : 'Borrowers who have linked this broker to their Chathouse profile'}</div>
-                {(avgRating > 0 || reviews.length > 0) && (
-                  <div style={styles.linksStats}>
-                    {avgRating > 0 && (
-                      <div style={styles.linksStat}>
-                        <div style={{ ...styles.linksStatNum, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {avgRating}<Icon.Star size={14} filled/>
-                        </div>
-                        <div style={styles.linksStatLabel}>Avg rating</div>
-                      </div>
-                    )}
-                    <div style={styles.linksStat}>
-                      <div style={styles.linksStatNum}>{reviews.length}</div>
-                      <div style={styles.linksStatLabel}>Reviews</div>
+            {profile.account_type === 'broker' && <HighlightsCard title="Broker Highlights" items={[
+              { icon: <Icon.Briefcase/>, label: 'Lender', value: profile.company || h.lender },
+              { icon: <Icon.Calendar/>, label: 'Experience', value: h.experience },
+              { icon: <Icon.Document/>, label: 'Loans Closed', value: h.loans_closed },
+              { icon: <Icon.Star/>, label: 'Avg Rating', value: h.avg_rating },
+              { icon: <Icon.Dollar/>, label: 'Loan Types', value: h.loan_types },
+              { icon: <Icon.Bolt/>, label: 'Avg Close Time', value: h.avg_close_time }
+            ]} license={profile.license_number} isOwn={isOwn}/>}
+
+            {profile.account_type === 'management' && <HighlightsCard title="Property Management" items={[
+              { icon: <Icon.Briefcase/>, label: 'Company', value: profile.company },
+              { icon: <Icon.Building/>, label: 'Portfolio Size', value: Array.isArray(profile.verified_properties) ? profile.verified_properties.length || 'Claim buildings to show here' : 0 },
+              { icon: <Icon.Calendar/>, label: 'On Chathouse since', value: new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }
+            ]} isOwn={isOwn}/>}
+
+            {/* Buyer "looking for" card */}
+            {isBuyer && (profile.looking_for || profile.move_timeline) && (
+              <div style={styles.card}>
+                <div style={{ padding: 24 }}>
+                  <h2 style={styles.h2}>What I'm looking for</h2>
+                  {profile.move_timeline && (
+                    <div style={styles.timelineRow}>
+                      <Icon.Clock size={13}/>
+                      <span>Moving in {profile.move_timeline}</span>
                     </div>
-                  </div>
-                )}
-                <div style={styles.linksPrivacyNote}>
-                  <Icon.Lock size={13}/> Client details are private. Only you can view who your linked clients are via your dashboard.
+                  )}
+                  {profile.looking_for && <p style={styles.lookingFor}>{profile.looking_for}</p>}
                 </div>
               </div>
             )}
 
-            {/* Reviews */}
-            {activeTab === 'reviews' && hasReviews && (
-              <>
-                {reviews.length > 0 && (
-                  <div style={styles.reviewSummary}>
-                    <div style={styles.reviewAvgNum}>{avgRating}</div>
-                    <div>
-                      <div style={{ display: 'flex', gap: 2, marginBottom: 4, color: '#f59e0b' }}>
-                        {[1,2,3,4,5].map(s => <Icon.Star key={s} size={16} filled={s <= Math.round(avgRating)}/>)}
-                      </div>
-                      <div style={{ fontSize: 13, color: '#64748b' }}>{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</div>
-                    </div>
-                  </div>
-                )}
-                {user && !isOwn && (
-                  <div style={{ marginBottom: 16, marginTop: reviews.length > 0 ? 0 : 16 }}>
-                    {!showReviewForm ? (
-                      <button onClick={() => setShowReviewForm(true)} style={styles.writeReviewBtn}>
-                        {myReview ? <><Icon.Pencil size={13}/> Edit your review</> : <><Icon.Star size={13}/> Write a review</>}
-                      </button>
-                    ) : (
-                      <div style={styles.reviewForm}>
-                        <div style={{ marginBottom: 12 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>Your rating</div>
-                          <div style={{ display: 'flex', gap: 4, color: '#f59e0b' }}>
-                            {[1,2,3,4,5].map(s => (
-                              <button key={s} onClick={() => setReviewRating(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'inherit', display: 'flex' }}>
-                                <Icon.Star size={22} filled={s <= reviewRating}/>
-                              </button>
-                            ))}
+            {/* ========== Tabs card ========== */}
+            <div style={styles.card}>
+              <div style={styles.tabRow}>
+                <TabButton id="updates" icon={<Icon.Document/>} label="Updates" count={posts.length}/>
+                <TabButton id="friends" icon={<Icon.Users/>} label="Friends" count={friends.length}/>
+                {isPro && <TabButton id="links" icon={<Icon.Link/>} label="Client Links" count={clientLinksCount}/>}
+                {hasReviews && <TabButton id="reviews" icon={<Icon.Star/>} label="Reviews" count={reviews.length}/>}
+                <TabButton id="achievements" icon={<Icon.Trophy/>} label="Achievements" count={earnedCount}/>
+                {isOwn && <TabButton id="requests" icon={<Icon.Inbox/>} label="Requests" count={totalRequests} hasBadge/>}
+              </div>
+
+              <div style={{ padding: '0 24px 24px' }}>
+
+                {/* Updates */}
+                {activeTab === 'updates' && (
+                  <>
+                    {isOwn && (
+                      <div style={styles.composerInner}>
+                        <Avatar profile={profile} size={38}/>
+                        <div style={{ flex: 1 }}>
+                          <textarea value={postContent} onChange={e => setPostContent(e.target.value)} placeholder={placeholder} style={styles.composerInput} rows={3}/>
+                          {postError && <div style={styles.postError}>{postError}</div>}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                            <button onClick={handlePost} disabled={posting || !postContent.trim()} style={{ ...styles.postBtn, opacity: posting || !postContent.trim() ? 0.5 : 1 }}>{posting ? 'Posting...' : 'Post'}</button>
                           </div>
-                        </div>
-                        <textarea value={reviewContent} onChange={e => setReviewContent(e.target.value)} placeholder={`Share your experience with ${profile.name?.split(' ')[0]}...`} style={{ ...styles.composerInput, marginBottom: 10 }} rows={3}/>
-                        {reviewError && <div style={styles.postError}>{reviewError}</div>}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button onClick={submitReview} disabled={submittingReview || !reviewContent.trim()} style={{ ...styles.postBtn, opacity: submittingReview || !reviewContent.trim() ? 0.5 : 1 }}>{submittingReview ? 'Submitting...' : myReview ? 'Update review' : 'Submit review'}</button>
-                          <button onClick={() => setShowReviewForm(false)} style={styles.unfriendBtn}>Cancel</button>
-                          {myReview && <button onClick={deleteReview} style={{ ...styles.unfriendBtn, color: '#dc2626' }}>Delete</button>}
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-                {reviewsLoading
-                  ? <div style={styles.loadingText}>Loading...</div>
-                  : reviews.length === 0
-                    ? <EmptyState icon={<Icon.Star size={28}/>} title="No reviews yet" sub={isOwn ? 'Reviews from clients and community members will appear here.' : `Be the first to review ${profile.name?.split(' ')[0]}.`}/>
-                    : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {reviews.map(review => (
-                          <div key={review.id} style={styles.reviewCard}>
-                            <div style={styles.postHeader}>
-                              <Avatar profile={review.reviewer} size={36}/>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  <Link to={`/profile/${review.reviewer_id}`} style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textDecoration: 'none' }}>{review.reviewer?.name || 'User'}</Link>
-                                  <span style={styles.postTime}>{timeAgo(review.created_at)}</span>
+                    {postsLoading
+                      ? <div style={styles.loadingText}>Loading...</div>
+                      : posts.length === 0
+                        ? <EmptyState icon={<Icon.Document size={28}/>} title="No updates yet" sub={isOwn ? 'Share your first update above.' : 'No updates posted yet.'}/>
+                        : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                            {posts.map(post => (
+                              <div key={post.id} style={styles.postCard}>
+                                <div style={styles.postHeader}>
+                                  <Avatar profile={profile} size={36}/>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                      <span style={styles.postName}>{profile.name}</span>
+                                      <RolePill accountType={profile.account_type} size="sm"/>
+                                      <span style={styles.postTime}>{timeAgo(post.created_at)}</span>
+                                    </div>
+                                  </div>
+                                  {isOwn && (
+                                    <button onClick={() => handleDeletePost(post.id)} style={styles.deleteBtn} aria-label="Delete post">
+                                      <Icon.Trash/>
+                                    </button>
+                                  )}
                                 </div>
-                                <div style={{ display: 'flex', gap: 2, marginTop: 4, color: '#f59e0b' }}>
-                                  {[1,2,3,4,5].map(s => <Icon.Star key={s} size={12} filled={s <= review.rating}/>)}
+                                <p style={styles.postContent}>{post.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                    }
+                  </>
+                )}
+
+                {/* Friends */}
+                {activeTab === 'friends' && (
+                  <>
+                    {friendsLoading
+                      ? <div style={styles.loadingText}>Loading...</div>
+                      : friends.length === 0
+                        ? <EmptyState icon={<Icon.Users size={28}/>} title="No friends yet" sub={isOwn ? 'Connect with people you meet in listing conversations.' : 'No connections yet.'}/>
+                        : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                            {friends.map(friend => (
+                              <div key={friend.id} style={styles.friendCard}>
+                                <Link to={`/profile/${friend.id}`} style={styles.friendLeft}>
+                                  <Avatar profile={friend} size={48}/>
+                                  <div>
+                                    <div style={styles.friendName}>{friend.name}</div>
+                                    {friend.city && (
+                                      <div style={styles.friendCity}>
+                                        <Icon.Pin size={11}/> {friend.city}
+                                      </div>
+                                    )}
+                                    <div style={{ marginTop: 4 }}>
+                                      <RolePill accountType={friend.account_type} size="sm"/>
+                                    </div>
+                                  </div>
+                                </Link>
+                                <div style={styles.friendActions}>
+                                  <Link to={`/messages?user=${friend.id}`} style={styles.messageBtn}>
+                                    <Icon.Message size={12}/> Message
+                                  </Link>
+                                  {isOwn && (
+                                    <button
+                                      onClick={() => toggleFollowFriend(friend.connectionId, followingFriends[friend.connectionId])}
+                                      style={{
+                                        ...styles.unfriendBtn,
+                                        color: followingFriends[friend.connectionId] ? '#1a6cf5' : '#94a3b8',
+                                        background: followingFriends[friend.connectionId] ? '#e8f0fe' : '#f1f5f9',
+                                      }}
+                                      title={followingFriends[friend.connectionId] ? 'Turn off post notifications' : 'Get notified when they post'}
+                                    >
+                                      {followingFriends[friend.connectionId] ? <Icon.BellOn size={12}/> : <Icon.BellOff size={12}/>}
+                                      {followingFriends[friend.connectionId] ? 'Notifying' : 'Notify me'}
+                                    </button>
+                                  )}
+                                  {isOwn && <button onClick={() => unfriend(friend.connectionId)} style={styles.unfriendBtn}>Unfriend</button>}
                                 </div>
                               </div>
-                            </div>
-                            {review.content && <p style={styles.postContent}>{review.content}</p>}
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )
-                }
-              </>
-            )}
+                        )
+                    }
+                  </>
+                )}
 
-            {/* Achievements */}
-            {activeTab === 'achievements' && (
-              <>
-                <div style={styles.achievementsIntro}>
-                  <Icon.Trophy size={14}/> <strong style={{ marginLeft: 4 }}>Achievements</strong> are earned by hitting milestones on Chathouse. Displayed publicly on your profile so others can see your track record.
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-                  {achievements.map(a => (
-                    <div key={a.id} style={{
-                      ...styles.achievementCard,
-                      background: a.earned ? a.bg : '#f8fafc',
-                      borderWidth: 1.5,
-                      borderStyle: 'solid',
-                      borderColor: a.earned ? a.border : '#e2e8f0',
-                      opacity: a.earned ? 1 : 0.7,
-                    }}>
-                      <div style={{
-                        ...styles.achievementIcon,
-                        background: a.earned ? a.border : '#e2e8f0',
-                        color: a.earned ? a.earnedColor : '#94a3b8',
-                      }}>{a.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: a.earned ? '#0f172a' : '#94a3b8' }}>{a.title}</span>
-                          {a.earned && (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: a.earnedColor, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              <Icon.Check size={11}/> Earned
-                            </span>
-                          )}
+                {/* Client Links */}
+                {activeTab === 'links' && isPro && (
+                  <div style={styles.linksTab}>
+                    <div style={styles.linksCount}>{clientLinksCount}</div>
+                    <div style={styles.linksTitle}>Active Client Links</div>
+                    <div style={styles.linksSub}>{profile.account_type === 'agent' ? 'Buyers who have linked this agent to their Chathouse profile' : 'Borrowers who have linked this broker to their Chathouse profile'}</div>
+                    {(avgRating > 0 || reviews.length > 0) && (
+                      <div style={styles.linksStats}>
+                        {avgRating > 0 && (
+                          <div style={styles.linksStat}>
+                            <div style={{ ...styles.linksStatNum, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              {avgRating}<Icon.Star size={14} filled/>
+                            </div>
+                            <div style={styles.linksStatLabel}>Avg rating</div>
+                          </div>
+                        )}
+                        <div style={styles.linksStat}>
+                          <div style={styles.linksStatNum}>{reviews.length}</div>
+                          <div style={styles.linksStatLabel}>Reviews</div>
                         </div>
-                        <div style={{ fontSize: 12, color: a.earned ? '#475569' : '#94a3b8' }}>{a.desc}</div>
-                        {!a.earned && a.progress !== undefined && (
-                          <div style={{ marginTop: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-                              <span>Progress</span><span>{a.progress}/{a.total}</span>
-                            </div>
-                            <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
-                              <div style={{ height: '100%', width: `${(a.progress / a.total) * 100}%`, background: '#1a6cf5', borderRadius: 2, transition: 'width 200ms ease' }}/>
-                            </div>
-                          </div>
-                        )}
                       </div>
+                    )}
+                    <div style={styles.linksPrivacyNote}>
+                      <Icon.Lock size={13}/> Client details are private. Only you can view who your linked clients are via your dashboard.
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                  </div>
+                )}
 
-            {/* Requests */}
-            {activeTab === 'requests' && isOwn && (
-              <>
-                {requestsLoading
-                  ? <div style={styles.loadingText}>Loading...</div>
-                  : (friendRequests.length === 0 && linkRequests.length === 0)
-                    ? <EmptyState icon={<Icon.Inbox size={28}/>} title="No pending requests" sub="Friend and link requests will appear here."/>
-                    : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 16 }}>
-                        {friendRequests.length > 0 && (
-                          <div>
-                            <div style={styles.requestSectionTitle}>
-                              <Icon.Users size={14}/> Friend Requests ({friendRequests.length})
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-                              {friendRequests.map(req => (
-                                <div key={req.id} style={styles.requestCard}>
-                                  <Link to={`/profile/${req.requester_id}`} style={styles.requestLeft}>
-                                    <Avatar profile={req.requester} size={44}/>
-                                    <div>
-                                      <div style={styles.requestName}>{req.requester?.name || 'Unknown'}</div>
-                                      {req.requester?.city && (
-                                        <div style={styles.requestMeta}>
-                                          <Icon.Pin size={11}/> {req.requester.city}
-                                        </div>
-                                      )}
-                                      <div style={{ marginTop: 4 }}>
-                                        <RolePill accountType={req.requester?.account_type} size="sm"/>
-                                      </div>
-                                      <div style={styles.requestTime}>{timeAgo(req.created_at)}</div>
-                                    </div>
-                                  </Link>
-                                  <div style={styles.requestActions}>
-                                    <button onClick={() => acceptFriendRequestFromList(req.id)} style={styles.acceptBtn}>
-                                      <Icon.Check size={12}/> Accept
-                                    </button>
-                                    <button onClick={() => declineFriendRequest(req.id)} style={styles.declineBtn}>
-                                      <Icon.X size={12}/> Decline
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                {/* Reviews */}
+                {activeTab === 'reviews' && hasReviews && (
+                  <>
+                    {reviews.length > 0 && (
+                      <div style={styles.reviewSummary}>
+                        <div style={styles.reviewAvgNum}>{avgRating}</div>
+                        <div>
+                          <div style={{ display: 'flex', gap: 2, marginBottom: 4, color: '#f59e0b' }}>
+                            {[1,2,3,4,5].map(s => <Icon.Star key={s} size={16} filled={s <= Math.round(avgRating)}/>)}
                           </div>
-                        )}
-                        {isPro && linkRequests.length > 0 && (
-                          <div>
-                            <div style={styles.requestSectionTitle}>
-                              <Icon.Link size={14}/> Link Requests ({linkRequests.length})
+                          <div style={{ fontSize: 13, color: '#64748b' }}>{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</div>
+                        </div>
+                      </div>
+                    )}
+                    {user && !isOwn && (
+                      <div style={{ marginBottom: 16, marginTop: reviews.length > 0 ? 0 : 16 }}>
+                        {!showReviewForm ? (
+                          <button onClick={() => setShowReviewForm(true)} style={styles.writeReviewBtn}>
+                            {myReview ? <><Icon.Pencil size={13}/> Edit your review</> : <><Icon.Star size={13}/> Write a review</>}
+                          </button>
+                        ) : (
+                          <div style={styles.reviewForm}>
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>Your rating</div>
+                              <div style={{ display: 'flex', gap: 4, color: '#f59e0b' }}>
+                                {[1,2,3,4,5].map(s => (
+                                  <button key={s} onClick={() => setReviewRating(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'inherit', display: 'flex' }}>
+                                    <Icon.Star size={22} filled={s <= reviewRating}/>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, marginTop: 4 }}>
-                              These users are requesting you as their {profile.account_type === 'agent' ? 'agent' : 'mortgage broker'}.
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                              {linkRequests.map(req => (
-                                <div key={req.id} style={{ ...styles.requestCard, borderLeft: '3px solid #f97316' }}>
-                                  <Link to={`/profile/${req.lead_user_id}`} style={styles.requestLeft}>
-                                    <Avatar profile={req.requester} size={44}/>
-                                    <div>
-                                      <div style={styles.requestName}>{req.requester?.name || 'Unknown'}</div>
-                                      {req.requester?.city && (
-                                        <div style={styles.requestMeta}>
-                                          <Icon.Pin size={11}/> {req.requester.city}
-                                        </div>
-                                      )}
-                                      <div style={{ marginTop: 4 }}>
-                                        <RolePill accountType={req.requester?.account_type} size="sm"/>
-                                      </div>
-                                      {req.message && <div style={styles.requestMessage}>"{req.message}"</div>}
-                                      <div style={styles.requestTime}>{timeAgo(req.created_at)}</div>
-                                    </div>
-                                  </Link>
-                                  <div style={styles.requestActions}>
-                                    <button onClick={() => acceptLinkRequest(req.id)} style={styles.acceptBtn}>
-                                      <Icon.Check size={12}/> Accept
-                                    </button>
-                                    <button onClick={() => declineLinkRequest(req.id)} style={styles.declineBtn}>
-                                      <Icon.X size={12}/> Decline
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                            <textarea value={reviewContent} onChange={e => setReviewContent(e.target.value)} placeholder={`Share your experience with ${profile.name?.split(' ')[0]}...`} style={{ ...styles.composerInput, marginBottom: 10 }} rows={3}/>
+                            {reviewError && <div style={styles.postError}>{reviewError}</div>}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={submitReview} disabled={submittingReview || !reviewContent.trim()} style={{ ...styles.postBtn, opacity: submittingReview || !reviewContent.trim() ? 0.5 : 1 }}>{submittingReview ? 'Submitting...' : myReview ? 'Update review' : 'Submit review'}</button>
+                              <button onClick={() => setShowReviewForm(false)} style={styles.unfriendBtn}>Cancel</button>
+                              {myReview && <button onClick={deleteReview} style={{ ...styles.unfriendBtn, color: '#dc2626' }}>Delete</button>}
                             </div>
                           </div>
                         )}
                       </div>
-                    )
-                }
-              </>
-            )}
+                    )}
+                    {!user && (
+                      <div style={{ marginTop: 16, padding: 16, background: '#f8fafc', borderRadius: 12, borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' }}>
+                        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Sign in to leave a review for {profile.name?.split(' ')[0]}.</div>
+                        <Link to="/signin" style={{ ...styles.actionBtn, textDecoration: 'none' }}>Sign in</Link>
+                      </div>
+                    )}
+                    {reviewsLoading
+                      ? <div style={styles.loadingText}>Loading...</div>
+                      : reviews.length === 0
+                        ? <EmptyState icon={<Icon.Star size={28}/>} title="No reviews yet" sub={isOwn ? 'Reviews from clients and community members will appear here.' : `Be the first to review ${profile.name?.split(' ')[0]}.`}/>
+                        : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {reviews.map(review => (
+                              <div key={review.id} style={styles.reviewCard}>
+                                <div style={styles.postHeader}>
+                                  <Avatar profile={review.reviewer} size={36}/>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                      <Link to={`/profile/${review.reviewer_id}`} style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textDecoration: 'none' }}>{review.reviewer?.name || 'User'}</Link>
+                                      <span style={styles.postTime}>{timeAgo(review.created_at)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 2, marginTop: 4, color: '#f59e0b' }}>
+                                      {[1,2,3,4,5].map(s => <Icon.Star key={s} size={12} filled={s <= review.rating}/>)}
+                                    </div>
+                                  </div>
+                                </div>
+                                {review.content && <p style={styles.postContent}>{review.content}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )
+                    }
+                  </>
+                )}
 
-          </div>
-        </div>
+                {/* Achievements */}
+                {activeTab === 'achievements' && (
+                  <>
+                    <div style={styles.achievementsIntro}>
+                      <Icon.Trophy size={14}/> <strong style={{ marginLeft: 4 }}>Achievements</strong> are earned by hitting milestones on Chathouse. Displayed publicly on your profile so others can see your track record.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                      {achievements.map(a => (
+                        <div key={a.id} style={{
+                          ...styles.achievementCard,
+                          background: a.earned ? a.bg : '#f8fafc',
+                          borderWidth: 1.5,
+                          borderStyle: 'solid',
+                          borderColor: a.earned ? a.border : '#e2e8f0',
+                          opacity: a.earned ? 1 : 0.7,
+                        }}>
+                          <div style={{
+                            ...styles.achievementIcon,
+                            background: a.earned ? a.border : '#e2e8f0',
+                            color: a.earned ? a.earnedColor : '#94a3b8',
+                          }}>{a.icon}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: a.earned ? '#0f172a' : '#94a3b8' }}>{a.title}</span>
+                              {a.earned && (
+                                <span style={{ fontSize: 11, fontWeight: 700, color: a.earnedColor, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  <Icon.Check size={11}/> Earned
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: a.earned ? '#475569' : '#94a3b8' }}>{a.desc}</div>
+                            {!a.earned && a.progress !== undefined && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+                                  <span>Progress</span><span>{a.progress}/{a.total}</span>
+                                </div>
+                                <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
+                                  <div style={{ height: '100%', width: `${(a.progress / a.total) * 100}%`, background: '#1a6cf5', borderRadius: 2, transition: 'width 200ms ease' }}/>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Requests */}
+                {activeTab === 'requests' && isOwn && (
+                  <>
+                    {requestsLoading
+                      ? <div style={styles.loadingText}>Loading...</div>
+                      : (friendRequests.length === 0 && linkRequests.length === 0)
+                        ? <EmptyState icon={<Icon.Inbox size={28}/>} title="No pending requests" sub="Friend and link requests will appear here."/>
+                        : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 16 }}>
+                            {friendRequests.length > 0 && (
+                              <div>
+                                <div style={styles.requestSectionTitle}>
+                                  <Icon.Users size={14}/> Friend Requests ({friendRequests.length})
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                                  {friendRequests.map(req => (
+                                    <div key={req.id} style={styles.requestCard}>
+                                      <Link to={`/profile/${req.requester_id}`} style={styles.requestLeft}>
+                                        <Avatar profile={req.requester} size={44}/>
+                                        <div>
+                                          <div style={styles.requestName}>{req.requester?.name || 'Unknown'}</div>
+                                          {req.requester?.city && (
+                                            <div style={styles.requestMeta}>
+                                              <Icon.Pin size={11}/> {req.requester.city}
+                                            </div>
+                                          )}
+                                          <div style={{ marginTop: 4 }}>
+                                            <RolePill accountType={req.requester?.account_type} size="sm"/>
+                                          </div>
+                                          <div style={styles.requestTime}>{timeAgo(req.created_at)}</div>
+                                        </div>
+                                      </Link>
+                                      <div style={styles.requestActions}>
+                                        <button onClick={() => acceptFriendRequestFromList(req.id)} style={styles.acceptBtn}>
+                                          <Icon.Check size={12}/> Accept
+                                        </button>
+                                        <button onClick={() => declineFriendRequest(req.id)} style={styles.declineBtn}>
+                                          <Icon.X size={12}/> Decline
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {isPro && linkRequests.length > 0 && (
+                              <div>
+                                <div style={styles.requestSectionTitle}>
+                                  <Icon.Link size={14}/> Link Requests ({linkRequests.length})
+                                </div>
+                                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, marginTop: 4 }}>
+                                  These users are requesting you as their {profile.account_type === 'agent' ? 'agent' : 'mortgage broker'}.
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                  {linkRequests.map(req => (
+                                    <div key={req.id} style={{ ...styles.requestCard, borderLeft: '3px solid #f97316' }}>
+                                      <Link to={`/profile/${req.lead_user_id}`} style={styles.requestLeft}>
+                                        <Avatar profile={req.requester} size={44}/>
+                                        <div>
+                                          <div style={styles.requestName}>{req.requester?.name || 'Unknown'}</div>
+                                          {req.requester?.city && (
+                                            <div style={styles.requestMeta}>
+                                              <Icon.Pin size={11}/> {req.requester.city}
+                                            </div>
+                                          )}
+                                          <div style={{ marginTop: 4 }}>
+                                            <RolePill accountType={req.requester?.account_type} size="sm"/>
+                                          </div>
+                                          {req.message && <div style={styles.requestMessage}>"{req.message}"</div>}
+                                          <div style={styles.requestTime}>{timeAgo(req.created_at)}</div>
+                                        </div>
+                                      </Link>
+                                      <div style={styles.requestActions}>
+                                        <button onClick={() => acceptLinkRequest(req.id)} style={styles.acceptBtn}>
+                                          <Icon.Check size={12}/> Accept
+                                        </button>
+                                        <button onClick={() => declineLinkRequest(req.id)} style={styles.declineBtn}>
+                                          <Icon.X size={12}/> Decline
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                    }
+                  </>
+                )}
+
+              </div>
+            </div>
+          </>
+        )}
       </div>
       <Footer />
     </div>
@@ -1215,14 +1341,14 @@ const styles = {
   back: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748b', marginBottom: 16, textDecoration: 'none', fontWeight: 600 },
   card: { background: '#fff', borderRadius: 16, borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0', overflow: 'hidden', marginBottom: 16, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' },
 
-  /* Header card pieces */
-  banner: { height: 64, background: 'linear-gradient(135deg, #1a6cf5, #7c3aed)' },
+  /* Banner: kept the linear-gradient blue/purple for visual interest on the
+     profile card only — it's a brand accent, not a user-facing decision. */
+  banner: { height: 64, background: 'linear-gradient(135deg, #1a6cf5, #0ea5e9)' },
   headerInner: { padding: '0 24px 24px' },
   avatarWrap: { flexShrink: 0, borderRadius: '50%', borderWidth: 4, borderStyle: 'solid', borderColor: '#fff', boxShadow: '0 2px 12px rgba(15,23,42,0.08)', marginTop: -48, width: 'fit-content', marginBottom: 16 },
   identityRow: { display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 },
   nameLine: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   name: { fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' },
-  /* POLISH: tight wrapper so the verified icon aligns optically with name */
   verifiedWrap: { display: 'inline-flex', alignItems: 'center', lineHeight: 0 },
   metaLine: { display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' },
   actionsCluster: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 },
@@ -1243,7 +1369,7 @@ const styles = {
   linkForm: { background: '#fff7ed', borderWidth: 1, borderStyle: 'solid', borderColor: '#fed7aa', borderRadius: 12, padding: 16, marginBottom: 16, marginTop: 4 },
   linkFormTitle: { fontSize: 13, fontWeight: 700, color: '#c2410c', marginBottom: 10 },
 
-  statsRow: { display: 'flex', gap: 24, marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' },
+  statsRow: { display: 'flex', gap: 24, flexWrap: 'wrap' },
   stat: { textAlign: 'center', minWidth: 56 },
   statNum: { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: '#0f172a', lineHeight: 1.2 },
   statLabel: { fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
@@ -1319,7 +1445,43 @@ const styles = {
   spinner: { width: 36, height: 36, borderRadius: '50%', borderWidth: 3, borderStyle: 'solid', borderColor: '#e8f0fe', borderTopColor: '#1a6cf5', animation: 'chathouseSpin 0.8s linear infinite' },
 }
 
-/* Inject spinner keyframes once */
+const gateStyles = {
+  gateWrap: { position: 'relative', minHeight: 400 },
+  blurredBody: { filter: 'blur(6px)', userSelect: 'none', pointerEvents: 'none', opacity: 0.6 },
+  overlay: {
+    position: 'absolute', inset: 0,
+    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+    padding: '40px 20px',
+    background: 'linear-gradient(180deg, rgba(248,250,252,0.4) 0%, rgba(248,250,252,0.95) 30%)',
+  },
+  card: {
+    textAlign: 'center', maxWidth: 420, padding: '32px 28px',
+    background: '#fff', borderRadius: 20,
+    borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
+    boxShadow: '0 8px 32px rgba(26,108,245,0.1)',
+  },
+  iconWrap: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 56, height: 56, borderRadius: 14,
+    background: '#e8f0fe', color: '#1a6cf5',
+    marginBottom: 14,
+  },
+  title: { fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 8 },
+  sub: { fontSize: 14, color: '#64748b', lineHeight: 1.6, marginBottom: 24 },
+  buttons: { display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 },
+  signUp: {
+    padding: '12px 24px', background: '#1a6cf5', color: '#fff',
+    borderRadius: 10, fontSize: 14, fontWeight: 700,
+    textDecoration: 'none', boxShadow: '0 4px 12px rgba(26,108,245,0.3)',
+  },
+  signIn: {
+    padding: '12px 24px', background: '#f1f5f9', color: '#475569',
+    borderRadius: 10, fontSize: 14, fontWeight: 600,
+    textDecoration: 'none',
+  },
+  fine: { fontSize: 11, color: '#94a3b8', margin: 0 },
+}
+
 if (typeof document !== 'undefined' && !document.getElementById('chathouse-profile-anim')) {
   const styleEl = document.createElement('style')
   styleEl.id = 'chathouse-profile-anim'

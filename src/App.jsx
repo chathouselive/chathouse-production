@@ -57,7 +57,9 @@ export default function App() {
         <Route path="/property-dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
         <Route path="/add-listing" element={<ProtectedRoute><AddListing /></ProtectedRoute>} />
         <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
-        <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        {/* Public profile route — Profile.jsx internally gates consumer (buyer/renter)
+            profiles for signed-out viewers using the SignedOutGate component. */}
+        <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/admin" element={<ProtectedRoute><AdminOverview /></ProtectedRoute>} />
         <Route path="/admin/verifications" element={<ProtectedRoute><AdminVerifications /></ProtectedRoute>} />
         <Route path="/admin/photos" element={<ProtectedRoute><AdminPhotos /></ProtectedRoute>} />
