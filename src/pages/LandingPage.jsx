@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Users, Building2, Handshake, Unlock, Globe, Shield } from 'lucide-react'
 import Footer from '../components/Footer'
+import HeroSearch from '../components/HeroSearch'
 
 function ChathouseLogo({ height = 36 }) {
   return (
@@ -105,6 +107,14 @@ const SAMPLE_COMMENTS = [
 ]
 
 export default function LandingPage() {
+  /* Ref to the hero search — the "Search any address free" CTA focuses it */
+  const heroSearchRef = useRef(null)
+
+  function focusHeroSearch(e) {
+    e.preventDefault()
+    heroSearchRef.current?.focus()
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: "'Georgia', var(--serif), serif" }}>
 
@@ -137,8 +147,18 @@ export default function LandingPage() {
           <p style={styles.heroSub}>
             Chathouse is where past tenants, neighbors, and buyers publicly review every listing. Verified reviewers. No paid placement. Honest answers before you sign.
           </p>
+
+          {/* ===== Hero search — searches addresses + agent/broker profiles ===== */}
+          <div style={styles.heroSearchWrap}>
+            <HeroSearch ref={heroSearchRef}/>
+            <div style={styles.heroSearchHint}>
+              Try a city, address, or an agent's name
+            </div>
+          </div>
+
           <div style={styles.heroActions}>
-            <Link to="/signup" style={styles.btnHero}>Search any address free →</Link>
+            {/* Primary CTA now focuses the search input rather than jumping to signup */}
+            <button onClick={focusHeroSearch} style={styles.btnHero}>Search any address free →</button>
             <Link to="/listings" style={styles.btnHeroSecondary}>Browse live listings</Link>
           </div>
           <div style={styles.trustRow}>
@@ -434,8 +454,14 @@ const styles = {
   heroTitle: { fontFamily: 'Georgia, var(--serif), serif', fontSize: 58, fontWeight: 900, color: '#0F1F3D', lineHeight: 1.08, marginBottom: 20, letterSpacing: -1.2 },
   heroAccent: { color: '#1A6FE8', fontStyle: 'italic' },
   heroSub: { fontSize: 18, color: '#4a5568', lineHeight: 1.7, maxWidth: 640, margin: '0 auto 32px' },
+
+  /* Hero search wrapper — sits between sub-headline and the action buttons */
+  heroSearchWrap: { marginBottom: 28 },
+  heroSearchHint: { fontSize: 12, color: '#94a3b8', marginTop: 10, fontWeight: 500 },
+
   heroActions: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center', marginBottom: 40 },
-  btnHero: { padding: '14px 30px', background: '#f97316', color: '#fff', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 20px rgba(249,115,22,0.35)' },
+  /* Hero CTA is a button now (focuses search), not a link */
+  btnHero: { padding: '14px 30px', background: '#f97316', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 20px rgba(249,115,22,0.35)', cursor: 'pointer', fontFamily: 'inherit' },
   btnHeroSecondary: { padding: '14px 24px', background: '#fff', color: '#0F1F3D', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 15, fontWeight: 600, textDecoration: 'none' },
   trustRow: { display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' },
   trustItem: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#64748b', fontWeight: 500 },
@@ -450,7 +476,6 @@ const styles = {
 
   // Community
   communitySection: { padding: '88px 24px', background: '#fff' },
-  // MOBILE PASS: '1fr 1.1fr' breaks on narrow viewports — add media query to stack on mobile
   communityInner: { maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 60, alignItems: 'center' },
   communityLeft: {},
   communityRight: {},
@@ -477,9 +502,8 @@ const styles = {
   landlordLabel: { fontSize: 10, fontWeight: 800, color: '#1A6FE8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
   landlordText: { fontSize: 12, color: '#334155', lineHeight: 1.5, margin: 0 },
 
-  // AI Risk Report section (optional upgrade / revenue)
+  // AI Risk Report section
   aiSection: { background: '#0F1F3D', padding: '80px 24px' },
-  // MOBILE PASS: two-column grid needs to stack on narrow viewports
   aiInner: { maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' },
   aiLeft: {},
   aiEyebrow: { display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#f97316', background: 'rgba(249,115,22,0.12)', padding: '4px 12px', borderRadius: 100, marginBottom: 18, textTransform: 'uppercase', letterSpacing: 1 },
