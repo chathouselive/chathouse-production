@@ -27,6 +27,8 @@ export default function Footer() {
   return (
     <footer style={styles.footer}>
       <div style={styles.footerInner}>
+
+        {/* ============= Top row: brand + nav columns ============= */}
         <div style={styles.topRow}>
           <div style={styles.brand}>
             <div style={styles.logoWrap}>
@@ -63,8 +65,44 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* ============= Broker disclosure block (NJMLS compliance) =============
+            Refined treatment: logos side-by-side at compact size, text gets the room. */}
+        <div style={styles.brokerBlock}>
+          {/* Header strip with label + small logo row */}
+          <div style={styles.brokerHeaderStrip}>
+            <div style={styles.brokerBlockLabel}>Brokerage Disclosure</div>
+            <div style={styles.brokerLogos}>
+              <img
+                src="/brokers/nbp-logo.png"
+                alt="Naeem Boucher Properties"
+                style={styles.nbpLogo}
+              />
+              <div style={styles.brokerLogoDivider} />
+              <img
+                src="/brokers/exp-logo.png"
+                alt="eXp Realty"
+                style={styles.expLogo}
+              />
+            </div>
+          </div>
+
+          {/* Disclosure text — full width below */}
+          <div style={styles.brokerText}>
+            <p style={styles.brokerLead}>
+              Chathouse is operated under the supervision of <strong style={styles.brokerHighlight}>Naeem Boucher</strong>, Participating Broker, <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong> (Naeem Boucher Properties), NJ Real Estate License #1017034.
+            </p>
+            <p style={styles.brokerOffice}>
+              28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
+            </p>
+            <p style={styles.brokerIDX}>
+              eXp Realty, LLC is a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
+            </p>
+          </div>
+        </div>
+
         <div style={styles.divider} />
 
+        {/* ============= Bottom row ============= */}
         <div style={styles.bottomRow}>
           <p style={styles.copyright}>© {year} Chathouse · All rights reserved</p>
           <div style={styles.bottomLinks}>
@@ -83,6 +121,8 @@ export default function Footer() {
 const styles = {
   footer: { background: '#0f172a', color: '#fff', padding: '56px 20px 32px' },
   footerInner: { maxWidth: 1100, margin: '0 auto' },
+
+  // Top row
   topRow: { display: 'flex', gap: 60, flexWrap: 'wrap', marginBottom: 40 },
   brand: { flex: '1 1 260px', maxWidth: 320 },
   logoWrap: { marginBottom: 12 },
@@ -93,6 +133,100 @@ const styles = {
   navCol: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 120 },
   navHeader: { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#475569', marginBottom: 4 },
   navLink: { fontSize: 13, color: '#94a3b8', textDecoration: 'none', lineHeight: 1.4 },
+
+  // Broker disclosure block
+  brokerBlock: {
+    background: '#162032',
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#1e293b',
+  },
+
+  // Header strip — label on left, compact logo row on right
+  brokerHeaderStrip: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+    flexWrap: 'wrap',
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#1e293b',
+  },
+  brokerBlockLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    color: '#93c5fd',
+  },
+
+  // Logos side-by-side, small, on a clean white card
+  brokerLogos: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    background: '#fff',
+    borderRadius: 8,
+    padding: '10px 18px',
+  },
+  nbpLogo: {
+    height: 36,
+    width: 'auto',
+    display: 'block',
+  },
+  brokerLogoDivider: {
+    width: 1,
+    height: 28,
+    background: '#e2e8f0',
+  },
+  expLogo: {
+    height: 22,
+    width: 'auto',
+    display: 'block',
+  },
+
+  // Disclosure text — full width, more room to breathe
+  brokerText: {
+    width: '100%',
+  },
+  brokerLead: {
+    fontSize: 13,
+    color: '#cbd5e1',
+    lineHeight: 1.65,
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  brokerHighlight: {
+    color: '#fff',
+    fontWeight: 700,
+  },
+  brokerOffice: {
+    fontSize: 12,
+    color: '#94a3b8',
+    lineHeight: 1.6,
+    marginBottom: 14,
+    marginTop: 0,
+  },
+  brokerPhone: {
+    color: '#94a3b8',
+    textDecoration: 'none',
+  },
+  brokerIDX: {
+    fontSize: 11,
+    color: '#64748b',
+    lineHeight: 1.7,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+
+  // Divider + bottom row
   divider: { height: 1, background: '#1e293b', marginBottom: 24 },
   bottomRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   copyright: { fontSize: 12, color: '#475569' },
