@@ -65,39 +65,39 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* ============= Broker disclosure block (NJMLS compliance) =============
-            Refined treatment: logos side-by-side at compact size, text gets the room. */}
+        {/* ============= Brokerage Disclosure block =============
+            Corrected per NJMLS feedback:
+            - eXp Realty is the dominant brokerage identity
+            - Naeem credited as "Realtor at eXp Realty, LLC" (not Participating Broker)
+            - "Naeem Boucher Properties" wording removed entirely
+            - eXp logo only (NBP logo removed from disclosure block)
+            - Chathouse positioned as data display vendor */}
         <div style={styles.brokerBlock}>
-          {/* Header strip with label + small logo row */}
-          <div style={styles.brokerHeaderStrip}>
-            <div style={styles.brokerBlockLabel}>Brokerage Disclosure</div>
-            <div style={styles.brokerLogos}>
-              <img
-                src="/brokers/nbp-logo.png"
-                alt="Naeem Boucher Properties"
-                style={styles.nbpLogo}
-              />
-              <div style={styles.brokerLogoDivider} />
-              <img
-                src="/brokers/exp-logo.png"
-                alt="eXp Realty"
-                style={styles.expLogo}
-              />
+          <div style={styles.brokerBlockLabel}>Brokerage of Record</div>
+
+          <div style={styles.brokerBrandRow}>
+            <img
+              src="/brokers/exp-logo.png"
+              alt="eXp Realty, LLC"
+              style={styles.expLogo}
+            />
+            <div style={styles.brokerBrandInfo}>
+              <div style={styles.brokerName}>eXp Realty, LLC</div>
+              <div style={styles.brokerAddress}>
+                28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
+              </div>
             </div>
           </div>
 
-          {/* Disclosure text — full width below */}
-          <div style={styles.brokerText}>
-            <p style={styles.brokerLead}>
-              Chathouse is operated under the supervision of <strong style={styles.brokerHighlight}>Naeem Boucher</strong>, Participating Broker, <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong> (Naeem Boucher Properties), NJ Real Estate License #1017034.
-            </p>
-            <p style={styles.brokerOffice}>
-              28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
-            </p>
-            <p style={styles.brokerIDX}>
-              eXp Realty, LLC is a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
-            </p>
-          </div>
+          <div style={styles.brokerDivider} />
+
+          <p style={styles.brokerLead}>
+            Listings displayed on Chathouse are provided through <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong>, a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Your eXp Realty point of contact for this site is <strong style={styles.brokerHighlight}>Naeem Boucher, Realtor</strong> (NJ Real Estate License #1017034).
+          </p>
+
+          <p style={styles.brokerIDX}>
+            Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. Chathouse is the technology platform that displays this data; eXp Realty, LLC is the brokerage of record. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
+          </p>
         </div>
 
         <div style={styles.divider} />
@@ -134,29 +134,15 @@ const styles = {
   navHeader: { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#475569', marginBottom: 4 },
   navLink: { fontSize: 13, color: '#94a3b8', textDecoration: 'none', lineHeight: 1.4 },
 
-  // Broker disclosure block
+  // Brokerage block — eXp Realty is the dominant brand here
   brokerBlock: {
     background: '#162032',
     borderRadius: 12,
-    padding: 24,
+    padding: 28,
     marginBottom: 32,
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: '#1e293b',
-  },
-
-  // Header strip — label on left, compact logo row on right
-  brokerHeaderStrip: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 20,
-    flexWrap: 'wrap',
-    paddingBottom: 16,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    borderBottomColor: '#1e293b',
   },
   brokerBlockLabel: {
     fontSize: 10,
@@ -164,59 +150,63 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: 1.4,
     color: '#93c5fd',
+    marginBottom: 18,
   },
 
-  // Logos side-by-side, small, on a clean white card
-  brokerLogos: {
+  // Brand row — eXp logo + brokerage name large and prominent
+  brokerBrandRow: {
     display: 'flex',
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    background: '#fff',
-    borderRadius: 8,
-    padding: '10px 18px',
-  },
-  nbpLogo: {
-    height: 36,
-    width: 'auto',
-    display: 'block',
-  },
-  brokerLogoDivider: {
-    width: 1,
-    height: 28,
-    background: '#e2e8f0',
+    gap: 20,
+    flexWrap: 'wrap',
+    marginBottom: 18,
   },
   expLogo: {
-    height: 22,
+    height: 56,
     width: 'auto',
     display: 'block',
+    background: '#fff',
+    padding: '12px 18px',
+    borderRadius: 10,
+    flexShrink: 0,
+  },
+  brokerBrandInfo: {
+    flex: 1,
+    minWidth: 200,
+  },
+  brokerName: {
+    fontSize: 20,
+    fontWeight: 800,
+    color: '#fff',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  brokerAddress: {
+    fontSize: 12,
+    color: '#94a3b8',
+    lineHeight: 1.5,
+  },
+  brokerPhone: {
+    color: '#94a3b8',
+    textDecoration: 'none',
   },
 
-  // Disclosure text — full width, more room to breathe
-  brokerText: {
-    width: '100%',
+  brokerDivider: {
+    height: 1,
+    background: '#1e293b',
+    marginBottom: 18,
   },
+
   brokerLead: {
     fontSize: 13,
     color: '#cbd5e1',
     lineHeight: 1.65,
-    marginBottom: 8,
+    marginBottom: 12,
     marginTop: 0,
   },
   brokerHighlight: {
     color: '#fff',
     fontWeight: 700,
-  },
-  brokerOffice: {
-    fontSize: 12,
-    color: '#94a3b8',
-    lineHeight: 1.6,
-    marginBottom: 14,
-    marginTop: 0,
-  },
-  brokerPhone: {
-    color: '#94a3b8',
-    textDecoration: 'none',
   },
   brokerIDX: {
     fontSize: 11,
