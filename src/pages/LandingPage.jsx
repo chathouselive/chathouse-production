@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Users, Building2, Handshake, Unlock, Globe, Shield } from 'lucide-react'
 import Footer from '../components/Footer'
 import HeroSearch from '../components/HeroSearch'
+import BrokerStrip from '../components/BrokerStrip'
 
 function ChathouseLogo({ height = 36 }) {
   return (
@@ -107,7 +108,6 @@ const SAMPLE_COMMENTS = [
 ]
 
 export default function LandingPage() {
-  /* Ref to the hero search — the "Search any address free" CTA focuses it */
   const heroSearchRef = useRef(null)
 
   function focusHeroSearch(e) {
@@ -118,20 +118,25 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: "'Georgia', var(--serif), serif" }}>
 
-      {/* Sticky nav */}
-      <header style={styles.nav}>
-        <div style={styles.navInner}>
-          <ChathouseLogo height={38} />
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-            <Link to="/listings" style={styles.navLink}>Listings</Link>
-            <Link to="/signup" style={styles.navLink}>For agents</Link>
-          </nav>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/signin" style={styles.btnGhost}>Sign in</Link>
-            <Link to="/signup" style={styles.btnPrimary}>Get started free</Link>
+      {/* ===== Sticky wrapper holds BrokerStrip + nav ===== */}
+      <div style={styles.stickyWrap}>
+        <BrokerStrip />
+
+        {/* Sticky nav */}
+        <header style={styles.nav}>
+          <div style={styles.navInner}>
+            <ChathouseLogo height={38} />
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+              <Link to="/listings" style={styles.navLink}>Listings</Link>
+              <Link to="/signup" style={styles.navLink}>For agents</Link>
+            </nav>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link to="/signin" style={styles.btnGhost}>Sign in</Link>
+              <Link to="/signup" style={styles.btnPrimary}>Get started free</Link>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* Hero — community is the product */}
       <section style={styles.hero}>
@@ -148,7 +153,6 @@ export default function LandingPage() {
             Chathouse is where past tenants, neighbors, and buyers publicly review every listing. Verified reviewers. No paid placement. Honest answers before you sign.
           </p>
 
-          {/* ===== Hero search — searches addresses + agent/broker profiles ===== */}
           <div style={styles.heroSearchWrap}>
             <HeroSearch ref={heroSearchRef}/>
             <div style={styles.heroSearchHint}>
@@ -157,7 +161,6 @@ export default function LandingPage() {
           </div>
 
           <div style={styles.heroActions}>
-            {/* Primary CTA now focuses the search input rather than jumping to signup */}
             <button onClick={focusHeroSearch} style={styles.btnHero}>Search any address free →</button>
             <Link to="/listings" style={styles.btnHeroSecondary}>Browse live listings</Link>
           </div>
@@ -384,7 +387,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features grid — AI report is now ONE card among equals */}
+      {/* Features grid */}
       <section style={styles.featuresSection}>
         <div style={styles.sectionInner}>
           <div style={styles.sectionLabel}>What you get</div>
@@ -439,8 +442,11 @@ export default function LandingPage() {
 }
 
 const styles = {
+  /* Sticky wrapper now holds the broker strip + nav together */
+  stickyWrap: { position: 'sticky', top: 0, zIndex: 50, background: '#fff' },
+
   // Nav
-  nav: { background: '#fff', borderBottom: '1px solid #e8edf2', position: 'sticky', top: 0, zIndex: 50 },
+  nav: { background: '#fff', borderBottom: '1px solid #e8edf2' },
   navInner: { maxWidth: 1160, margin: '0 auto', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20 },
   navLink: { fontSize: 14, color: '#475569', textDecoration: 'none', fontWeight: 500 },
   btnGhost: { padding: '8px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#334155', textDecoration: 'none' },
@@ -455,19 +461,17 @@ const styles = {
   heroAccent: { color: '#1A6FE8', fontStyle: 'italic' },
   heroSub: { fontSize: 18, color: '#4a5568', lineHeight: 1.7, maxWidth: 640, margin: '0 auto 32px' },
 
-  /* Hero search wrapper — sits between sub-headline and the action buttons */
   heroSearchWrap: { marginBottom: 28 },
   heroSearchHint: { fontSize: 12, color: '#94a3b8', marginTop: 10, fontWeight: 500 },
 
   heroActions: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center', marginBottom: 40 },
-  /* Hero CTA is a button now (focuses search), not a link */
   btnHero: { padding: '14px 30px', background: '#f97316', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 20px rgba(249,115,22,0.35)', cursor: 'pointer', fontFamily: 'inherit' },
   btnHeroSecondary: { padding: '14px 24px', background: '#fff', color: '#0F1F3D', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 15, fontWeight: 600, textDecoration: 'none' },
   trustRow: { display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' },
   trustItem: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#64748b', fontWeight: 500 },
   trustDot: { width: 6, height: 6, borderRadius: '50%', flexShrink: 0 },
 
-  // Wedge (structural conflict section)
+  // Wedge
   wedgeSection: { padding: '88px 24px', background: '#0F1F3D' },
   wedgeInner: { maxWidth: 820, margin: '0 auto', textAlign: 'center' },
   wedgeLabel: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#f97316', marginBottom: 14 },
