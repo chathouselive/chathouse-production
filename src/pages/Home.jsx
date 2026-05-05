@@ -4,6 +4,7 @@ import TopNav from '../components/TopNav'
 import ListingCard from '../components/ListingCard'
 import Footer from '../components/Footer'
 import { useListings } from '../lib/useListings'
+import { useAISearch } from '../lib/useAISearch'
 
 const CITIES = ['All', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Jersey City', 'Hoboken', 'Newark', 'Weehawken', 'Hackensack']
 const TYPES = [
@@ -36,15 +37,42 @@ const Icon = {
       <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
     </svg>
   ),
+  Sparkle: ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+      <path d="M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9z"/>
+    </svg>
+  ),
+  X: ({ size = 12 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
 }
 
 export default function Home() {
   const [city, setCity] = useState('All')
   const [type, setType] = useState('All')
   const [search, setSearch] = useState('')
-  const { listings, loading } = useListings({ city, type, search })
 
-  const showAddBuildingCTA = search.length > 3 && !loading && listings.length === 0
+  // AI search hook — debounces, calls Edge Function, returns parsed filters.
+  // Returns null filters when the query is short/simple, so the existing
+  // text-search behavior in useListings runs unchanged in that case.
+  const { aiFilters, aiRecap, aiLoading, aiError, clearAISearch } = useAISearch(search)
+
+  // When AI returned filters, suppress the simple text search so we don't
+  // double-filter. AI filters fully replace text search for that query.
+  // If AI is loading or failed, fall back to text search using raw input.
+  const effectiveSearch = aiFilters ? '' : search
+
+  const { listings, loading } = useListings({
+    city,
+    type,
+    search: effectiveSearch,
+    aiFilters,
+  })
+
+  const showAddBuildingCTA = search.length > 3 && !loading && listings.length === 0 && !aiLoading
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
@@ -53,14 +81,42 @@ export default function Home() {
       <div style={styles.filters}>
         <div style={styles.filtersInner}>
           <div style={styles.searchWrap}>
-            <span style={styles.searchIcon}><Icon.Search size={14}/></span>
+            <span style={styles.searchIcon}>
+              {aiLoading ? <span style={styles.searchSpinner}/> : <Icon.Search size={14}/>}
+            </span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search any address, city, or neighborhood..."
+              placeholder="Search address, neighborhood, or describe your dream home..."
               style={styles.searchInput}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); clearAISearch() }}
+                style={styles.searchClearBtn}
+                aria-label="Clear search"
+              >
+                <Icon.X size={12}/>
+              </button>
+            )}
           </div>
+
+          {/* AI recap chip — shows the user what we understood from their query */}
+          {aiFilters && aiRecap && (
+            <div style={styles.aiRecap}>
+              <span style={styles.aiRecapIcon}><Icon.Sparkle size={13}/></span>
+              <span style={styles.aiRecapLabel}>AI search:</span>
+              <span style={styles.aiRecapText}>{aiRecap}</span>
+            </div>
+          )}
+
+          {/* AI error — soft fallback, doesn't break the page */}
+          {aiError && (
+            <div style={styles.aiError}>
+              AI search hit an issue — falling back to text search.
+            </div>
+          )}
 
           <div style={styles.filterRow}>
             <span style={styles.filterLabel}>Type</span>
@@ -162,14 +218,54 @@ const styles = {
     color: '#94a3b8',
     display: 'flex', alignItems: 'center',
   },
+  searchSpinner: {
+    width: 14, height: 14, borderRadius: '50%',
+    borderWidth: 2, borderStyle: 'solid', borderColor: '#e2e8f0',
+    borderTopColor: '#1a6cf5',
+    animation: 'spin 0.8s linear infinite',
+    display: 'inline-block',
+  },
   searchInput: {
     width: '100%',
-    padding: '10px 14px 10px 40px',
+    padding: '10px 36px 10px 40px',
     borderWidth: 1.5, borderStyle: 'solid', borderColor: '#e2e8f0',
     borderRadius: 10, fontSize: 14, outline: 'none',
     background: '#f8fafc', color: '#0f172a',
     boxSizing: 'border-box',
   },
+  searchClearBtn: {
+    position: 'absolute', right: 10, top: '50%',
+    transform: 'translateY(-50%)',
+    width: 22, height: 22, borderRadius: '50%',
+    borderWidth: 0, background: '#e2e8f0',
+    color: '#64748b',
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0,
+  },
+
+  aiRecap: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '8px 12px',
+    background: '#eef2ff',
+    borderRadius: 8,
+    fontSize: 13, color: '#3730a3',
+    flexWrap: 'wrap',
+  },
+  aiRecapIcon: {
+    display: 'flex', alignItems: 'center',
+    color: '#6366f1',
+  },
+  aiRecapLabel: { fontWeight: 700, color: '#4338ca' },
+  aiRecapText: { color: '#3730a3' },
+
+  aiError: {
+    padding: '8px 12px',
+    background: '#fef3c7',
+    borderRadius: 8,
+    fontSize: 12, color: '#92400e',
+  },
+
   filterRow: {
     display: 'flex', alignItems: 'center', gap: 10,
     flexWrap: 'wrap',
