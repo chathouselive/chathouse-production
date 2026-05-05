@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 function ChathouseLogo({ height = 28 }) {
   return (
@@ -23,6 +23,28 @@ function ChathouseLogo({ height = 28 }) {
 
 export default function Footer() {
   const year = new Date().getFullYear()
+  const { pathname } = useLocation()
+
+  /* Show the brokerage disclosure block only on pages where MLS listing data is
+     displayed or could be displayed. The NJ co-branding rule applies when both
+     brands are presented to the consumer simultaneously — on internal product
+     pages (profile, dashboard, messages, etc.) Chathouse is the only brand
+     present, so no co-branding disclosure is required.
+
+     Allowed routes:
+       /                  Landing page
+       /listings          Listings index (Home.jsx)
+       /listing/:id       Individual listing detail page
+       /saved             Saved MLS listings
+
+     IMPORTANT: use startsWith('/listing/') WITH the trailing slash so it
+     matches /listing/abc-123 but NOT /listings (which would otherwise match
+     '/listing' as a prefix). */
+  const showBrokerBlock =
+    pathname === '/' ||
+    pathname === '/listings' ||
+    pathname === '/saved' ||
+    pathname.startsWith('/listing/')
 
   return (
     <footer style={styles.footer}>
@@ -66,39 +88,38 @@ export default function Footer() {
         </div>
 
         {/* ============= Brokerage Disclosure block =============
-            Corrected per NJMLS feedback:
-            - eXp Realty is the dominant brokerage identity
-            - Naeem credited as "Realtor at eXp Realty, LLC" (not Participating Broker)
-            - "Naeem Boucher Properties" wording removed entirely
-            - eXp logo only (NBP logo removed from disclosure block)
-            - Chathouse positioned as data display vendor */}
-        <div style={styles.brokerBlock}>
-          <div style={styles.brokerBlockLabel}>Brokerage of Record</div>
+            Only rendered on pages where MLS listing data is displayed.
+            Hidden on profiles, dashboards, messages, settings, admin, etc.
+            See showBrokerBlock logic at top of component. */}
+        {showBrokerBlock && (
+          <div style={styles.brokerBlock}>
+            <div style={styles.brokerBlockLabel}>Brokerage of Record</div>
 
-          <div style={styles.brokerBrandRow}>
-            <img
-              src="/brokers/exp-logo.png"
-              alt="eXp Realty, LLC"
-              style={styles.expLogo}
-            />
-            <div style={styles.brokerBrandInfo}>
-              <div style={styles.brokerName}>eXp Realty, LLC</div>
-              <div style={styles.brokerAddress}>
-                28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
+            <div style={styles.brokerBrandRow}>
+              <img
+                src="/brokers/exp-logo.png"
+                alt="eXp Realty, LLC"
+                style={styles.expLogo}
+              />
+              <div style={styles.brokerBrandInfo}>
+                <div style={styles.brokerName}>eXp Realty, LLC</div>
+                <div style={styles.brokerAddress}>
+                  28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
+                </div>
               </div>
             </div>
+
+            <div style={styles.brokerDivider} />
+
+            <p style={styles.brokerLead}>
+              Listings displayed on Chathouse are provided through <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong>, a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Your eXp Realty point of contact for this site is <strong style={styles.brokerHighlight}>Naeem Boucher, Realtor</strong> (NJ Real Estate License #1017034).
+            </p>
+
+            <p style={styles.brokerIDX}>
+              Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. Chathouse is the technology platform that displays this data; eXp Realty, LLC is the brokerage of record. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
+            </p>
           </div>
-
-          <div style={styles.brokerDivider} />
-
-          <p style={styles.brokerLead}>
-            Listings displayed on Chathouse are provided through <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong>, a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Your eXp Realty point of contact for this site is <strong style={styles.brokerHighlight}>Naeem Boucher, Realtor</strong> (NJ Real Estate License #1017034).
-          </p>
-
-          <p style={styles.brokerIDX}>
-            Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. Chathouse is the technology platform that displays this data; eXp Realty, LLC is the brokerage of record. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
-          </p>
-        </div>
+        )}
 
         <div style={styles.divider} />
 
