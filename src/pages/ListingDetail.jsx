@@ -5,6 +5,7 @@ import Comment from '../components/Comment'
 import CommentForm from '../components/CommentForm'
 import VerifyTenantModal from '../components/VerifyTenantModal'
 import Footer from '../components/Footer'
+import WalkabilityScores from '../components/WalkabilityScores'
 import { useListing } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
@@ -327,6 +328,9 @@ export default function ListingDetail() {
             </div>
           )}
         </div>
+
+        {/* Walk Score / Bike Score / Transit Score */}
+        <WalkabilityScores listing={listing} />
 
         {/* Fair Housing strip */}
         <div style={styles.fairHousingStrip}>
