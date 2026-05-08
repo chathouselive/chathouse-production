@@ -5,11 +5,14 @@
 //
 // Flow:
 //   1. Auth check (must be signed in)
-//   2. Quota check (5 generations max per user during beta)
-//   3. Cache check (return existing report if <30 days old)
+//   2. Cache check (return existing report for THIS user if <30 days old)
+//   3. Quota check (5 generations max per user during beta)
 //   4. Generate via Claude Sonnet 4.5
 //   5. Save to risk_reports + log to risk_report_generations
 //   6. Return report JSON
+//
+// Reports are user-scoped: each user gets their own report per listing.
+// One user generating does NOT unlock the report for other users.
 //
 // Cost: ~$0.01-0.03 per generation at Claude Sonnet 4.5 pricing.
 // =============================================================================
@@ -77,12 +80,13 @@ serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // -------------------------------------------------------------------------
-    // 3. Cache check — return existing report if fresh
+    // 3. Cache check — return THIS user's existing report if fresh
     // -------------------------------------------------------------------------
     const { data: cached } = await adminClient
       .from("risk_reports")
       .select("*")
       .eq("listing_id", listing_id)
+      .eq("user_id", user.id)
       .gte("expires_at", new Date().toISOString())
       .maybeSingle();
 
@@ -194,6 +198,7 @@ serve(async (req) => {
     await adminClient.from("risk_reports").upsert(
       {
         listing_id,
+        user_id: user.id,
         report_json: report,
         cost_usd: cost,
         created_at: new Date().toISOString(),
@@ -201,7 +206,7 @@ serve(async (req) => {
           Date.now() + CACHE_TTL_DAYS * 24 * 60 * 60 * 1000
         ).toISOString(),
       },
-      { onConflict: "listing_id" }
+      { onConflict: "listing_id,user_id" }
     );
 
     await adminClient.from("risk_report_generations").insert({
