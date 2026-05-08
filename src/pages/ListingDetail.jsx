@@ -6,6 +6,7 @@ import CommentForm from '../components/CommentForm'
 import VerifyTenantModal from '../components/VerifyTenantModal'
 import Footer from '../components/Footer'
 import WalkabilityScores from '../components/WalkabilityScores'
+import RiskReportSection from '../components/RiskReportSection'
 import { useListing } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
@@ -331,6 +332,9 @@ export default function ListingDetail() {
 
         {/* Walk Score / Bike Score / Transit Score */}
         <WalkabilityScores listing={listing} />
+
+        {/* AI Risk Report */}
+        <RiskReportSection listing={listing} />
 
         {/* Fair Housing strip */}
         <div style={styles.fairHousingStrip}>
