@@ -37,3 +37,8 @@ Thumbs.db
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# NJMLS exploratory data — never commit
+flag_sample*.json
+sample_*.json
+njmls_metadata.xml
