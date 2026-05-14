@@ -14,6 +14,16 @@ const TYPES = [
 ]
 
 /* ============================================================
+   Type bucket display helper
+   Used for the subheading "X · Rentals" / "X · For Sale".
+   ============================================================ */
+function getTypeLabel(typeBucket) {
+  if (typeBucket === 'rent' || typeBucket === 'rental') return 'Rentals'
+  if (typeBucket === 'sale') return 'For Sale'
+  return ''
+}
+
+/* ============================================================
    Inline SVG icons
    ============================================================ */
 const Icon = {
@@ -65,7 +75,7 @@ export default function Home() {
   // If AI is loading or failed, fall back to text search using raw input.
   const effectiveSearch = aiFilters ? '' : search
 
-  const { listings, loading } = useListings({
+  const { listings, loading, loadingMore, hasMore, loadMore } = useListings({
     city,
     type,
     search: effectiveSearch,
@@ -152,7 +162,7 @@ export default function Home() {
             </h1>
             <p style={styles.sub}>
               {city === 'All' ? 'All areas' : city}
-              {type !== 'All' && ` · ${type === 'rent' ? 'Rentals' : 'For Sale'}`}
+              {type !== 'All' && ` · ${getTypeLabel(type)}`}
             </p>
           </div>
           <Link to="/add-listing" style={styles.addBtn}>
@@ -189,9 +199,26 @@ export default function Home() {
         )}
 
         {!loading && listings.length > 0 && (
-          <div style={styles.grid}>
-            {listings.map(l => <ListingCard key={l.id} listing={l} />)}
-          </div>
+          <>
+            <div style={styles.grid}>
+              {listings.map(l => <ListingCard key={l.id} listing={l} />)}
+            </div>
+
+            {hasMore && (
+              <div style={styles.loadMoreWrap}>
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  style={{
+                    ...styles.loadMoreBtn,
+                    ...(loadingMore ? styles.loadMoreBtnDisabled : {}),
+                  }}
+                >
+                  {loadingMore ? 'Loading...' : 'Load more listings'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -308,6 +335,25 @@ const styles = {
     borderWidth: 3, borderStyle: 'solid', borderColor: '#e8f0fe',
     borderTopColor: '#1a6cf5',
     animation: 'spin 0.8s linear infinite',
+  },
+
+  loadMoreWrap: {
+    display: 'flex', justifyContent: 'center',
+    marginTop: 28,
+  },
+  loadMoreBtn: {
+    padding: '12px 28px',
+    background: '#fff',
+    color: '#1a6cf5',
+    borderWidth: 1.5, borderStyle: 'solid', borderColor: '#1a6cf5',
+    borderRadius: 10,
+    fontSize: 14, fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'background 120ms ease, color 120ms ease',
+  },
+  loadMoreBtnDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
   },
 
   empty: {
