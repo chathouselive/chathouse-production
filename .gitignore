@@ -42,3 +42,8 @@ supabase/.temp/
 flag_sample*.json
 sample_*.json
 njmls_metadata.xml
+
+# NJMLS sync test results — never commit
+geocode_test_result.json
+photo_sync_result.json
+sync_test_result.json

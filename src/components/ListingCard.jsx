@@ -30,12 +30,29 @@ const Icon = {
   ),
 }
 
+/* ============================================================
+   Type helpers — handle all listing types properly
+   Types: 'sale', 'rent' (legacy), 'rental', 'land', 'commercial', 'multifamily'
+   ============================================================ */
+function isRentalPricing(type) {
+  // Rentals show /mo on the price
+  return type === 'rent' || type === 'rental'
+}
+
+function getTypeBadge(type) {
+  if (type === 'rent' || type === 'rental') return 'For Rent'
+  if (type === 'land') return 'Land'
+  if (type === 'commercial') return 'Commercial'
+  if (type === 'multifamily') return 'Multi-Family'
+  return 'For Sale' // default: 'sale' or anything unknown
+}
+
 export default function ListingCard({ listing }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isCommunity = listing.source === 'community'
   const img = getListingImage(listing)
-  const priceStr = listing.type === 'rent'
+  const priceStr = isRentalPricing(listing.type)
     ? `$${Number(listing.price).toLocaleString()}/mo`
     : `$${Number(listing.price).toLocaleString()}`
 
@@ -88,7 +105,7 @@ export default function ListingCard({ listing }) {
             }}
           />
           <div style={{ ...styles.tag, background: listing.tag_color || '#1a6cf5' }}>
-            {listing.tag || (listing.type === 'rent' ? 'For Rent' : 'For Sale')}
+            {listing.tag || getTypeBadge(listing.type)}
           </div>
           {isCommunity && (
             <div style={styles.communityBadge}>
