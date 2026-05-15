@@ -14,14 +14,17 @@ const PAGE_SIZE = 100
    The UI presents simpler buckets:
      "For Rent" → matches 'rent' OR 'rental'
      "For Sale" → matches 'sale'
+     "Community" → not a type filter, filters on source='community' instead
+                   (handled separately in the fetch function below)
      "All" → no filter
 
    This helper converts a UI bucket value into a list of DB type values.
+   Returns null for 'community' (no type filter applies) and for 'All'.
    ============================================================ */
 function typesForBucket(bucket) {
   if (bucket === 'rent' || bucket === 'rental') return ['rent', 'rental']
   if (bucket === 'sale') return ['sale']
-  return null // 'All' or anything unrecognized → no filter
+  return null // 'All', 'community', or anything unrecognized → no type filter
 }
 
 /* ============================================================
@@ -29,7 +32,8 @@ function typesForBucket(bucket) {
 
    Params:
      city   — 'All' | a city name. Matches against hood OR city columns.
-     type   — 'All' | 'rent' | 'sale'  (UI bucket; mapped via typesForBucket)
+     type   — 'All' | 'rent' | 'sale' | 'community'
+              UI bucket; 'community' filters on source instead of type.
      search — free-text search across address/city/hood
      aiFilters — optional object from the AI search Edge Function
 
@@ -96,9 +100,15 @@ export function useListings({
         query = query.ilike('hood', `%${city}%`).or(`city.ilike.%${city}%`)
       }
       if (type && type !== 'All') {
-        const typeList = typesForBucket(type)
-        if (typeList && typeList.length > 0) {
-          query = query.in('type', typeList)
+        // Special case: 'community' filters on source, not type.
+        // Shows ONLY community listings regardless of their transaction type.
+        if (type === 'community') {
+          query = query.eq('source', 'community')
+        } else {
+          const typeList = typesForBucket(type)
+          if (typeList && typeList.length > 0) {
+            query = query.in('type', typeList)
+          }
         }
       }
       if (search) {

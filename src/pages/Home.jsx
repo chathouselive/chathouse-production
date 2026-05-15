@@ -11,15 +11,17 @@ const TYPES = [
   { value: 'All', label: 'All' },
   { value: 'rent', label: 'For Rent' },
   { value: 'sale', label: 'For Sale' },
+  { value: 'community', label: 'Community', purple: true },
 ]
 
 /* ============================================================
    Type bucket display helper
-   Used for the subheading "X · Rentals" / "X · For Sale".
+   Used for the subheading "X · Rentals" / "X · For Sale" / "X · Community".
    ============================================================ */
 function getTypeLabel(typeBucket) {
   if (typeBucket === 'rent' || typeBucket === 'rental') return 'Rentals'
   if (typeBucket === 'sale') return 'For Sale'
+  if (typeBucket === 'community') return 'Community Listed'
   return ''
 }
 
@@ -58,6 +60,26 @@ const Icon = {
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   ),
+}
+
+/* ============================================================
+   Chip style picker — returns the correct style for a TYPE chip
+   based on whether it's active, and whether it's the purple
+   Community variant.
+   ============================================================ */
+function getChipStyle(t, isActive) {
+  if (isActive) {
+    if (t.purple) {
+      return { ...styles.chip, ...styles.chipActivePurple }
+    }
+    return { ...styles.chip, ...styles.chipActive }
+  }
+  // Not active — purple chips still get a subtle purple text tint to hint
+  // at their identity even when inactive.
+  if (t.purple) {
+    return { ...styles.chip, ...styles.chipPurpleInactive }
+  }
+  return styles.chip
 }
 
 export default function Home() {
@@ -133,7 +155,7 @@ export default function Home() {
             <div style={styles.chipGroup}>
               {TYPES.map(t => (
                 <button key={t.value} onClick={() => setType(t.value)}
-                  style={{ ...styles.chip, ...(type === t.value ? styles.chipActive : {}) }}>
+                  style={getChipStyle(t, type === t.value)}>
                   {t.label}
                 </button>
               ))}
@@ -312,6 +334,9 @@ const styles = {
     transition: 'background 120ms ease, color 120ms ease, border-color 120ms ease',
   },
   chipActive: { background: '#1a6cf5', color: '#fff', borderColor: '#1a6cf5' },
+  /* Community chip — purple variant for the wedge feature */
+  chipActivePurple: { background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' },
+  chipPurpleInactive: { color: '#7c3aed', borderColor: '#ddd6fe' },
 
   main: { maxWidth: 1160, margin: '0 auto', padding: '28px 20px' },
   header: {
