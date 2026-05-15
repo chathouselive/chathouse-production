@@ -16,6 +16,22 @@ import { supabase } from '../lib/supabase'
 import { toggleListingLike, getListingLikeStatus } from '../lib/useListings'
 
 /* ============================================================
+   Type helpers — handle all listing types properly
+   Types: 'sale', 'rent' (legacy), 'rental', 'land', 'commercial', 'multifamily'
+   ============================================================ */
+function isRentalPricing(type) {
+  return type === 'rent' || type === 'rental'
+}
+
+function getTypeBadge(type) {
+  if (type === 'rent' || type === 'rental') return 'For Rent'
+  if (type === 'land') return 'Land'
+  if (type === 'commercial') return 'Commercial'
+  if (type === 'multifamily') return 'Multi-Family'
+  return 'For Sale'
+}
+
+/* ============================================================
    Inline SVG icons — matching the rest of the app
    ============================================================ */
 const Icon = {
@@ -67,6 +83,13 @@ const Icon = {
       <line x1="5" y1="6" x2="19" y2="6"/>
       <path d="M5 6 L2 13 a3 3 0 0 0 6 0 Z"/>
       <path d="M19 6 L16 13 a3 3 0 0 0 6 0 Z"/>
+    </svg>
+  ),
+  /* Lock — for comments-disabled disclaimer */
+  Lock: ({ size = 28 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   ),
 }
@@ -168,10 +191,21 @@ export default function ListingDetail() {
 
   const img = getListingImage(listing)
   const priceStr = listing.price
-    ? (listing.type === 'rent' ? `$${Number(listing.price).toLocaleString()}/mo` : `$${Number(listing.price).toLocaleString()}`)
+    ? (isRentalPricing(listing.type) ? `$${Number(listing.price).toLocaleString()}/mo` : `$${Number(listing.price).toLocaleString()}`)
     : 'Price not listed'
   const isCommunity = listing.source === 'community'
   const isIDX = listing.source === 'idx'
+
+  /* ============================================================
+     IDX Compliance gate: idx_consumer_comments
+     --------------------------------------------------------------
+     NJMLS Section 13.1: when the seller has opted out of internet
+     consumer comments, we MUST NOT display the comment section.
+     Community listings are never gated (the flag is null/default).
+     Only when source='idx' AND flag is explicitly true do we show
+     the comments. Null defaults to restrictive (hide comments).
+     ============================================================ */
+  const commentsAllowed = !isIDX || listing.idx_consumer_comments === true
 
   const FAKE_COMMENTS = [
     { id: 'f1', role: 'Past Tenant', text: 'Lived here for 2 years. The building management is incredibly responsive and...' },
@@ -206,7 +240,7 @@ export default function ListingDetail() {
             }}
           />
           <div style={{ ...styles.tag, background: listing.tag_color || '#1a6cf5' }}>
-            {listing.tag || (listing.type === 'rent' ? 'For Rent' : 'For Sale')}
+            {listing.tag || getTypeBadge(listing.type)}
           </div>
           {isCommunity && (
             <div style={styles.communityBadge}>
@@ -351,7 +385,16 @@ export default function ListingDetail() {
             <p style={styles.sub}>Honest comments from people who know this building.</p>
           </div>
 
-          {!user ? (
+          {/* IDX compliance gate: comments disabled by seller */}
+          {!commentsAllowed ? (
+            <div style={styles.commentsDisabled}>
+              <div style={styles.commentsDisabledIconWrap}><Icon.Lock size={28}/></div>
+              <div style={styles.commentsDisabledTitle}>Comments are disabled for this listing</div>
+              <div style={styles.commentsDisabledSub}>
+                Comments have been disabled at the request of the seller.
+              </div>
+            </div>
+          ) : !user ? (
             <div style={styles.gateWrap}>
               <div style={styles.blurredComments}>
                 {FAKE_COMMENTS.map(c => (
@@ -574,6 +617,12 @@ const styles = {
   commentsHead: { marginBottom: 16 },
   h2: { fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 },
   sub: { fontSize: 13, color: '#64748b' },
+
+  /* Comments disabled state (IDX flag false) — matches `empty` style */
+  commentsDisabled: { textAlign: 'center', padding: 40, background: '#f8fafc', borderRadius: 12 },
+  commentsDisabledIconWrap: { display: 'flex', justifyContent: 'center', marginBottom: 10, color: '#94a3b8' },
+  commentsDisabledTitle: { fontWeight: 700, color: '#0f172a', marginBottom: 4, fontSize: 14 },
+  commentsDisabledSub: { fontSize: 13, color: '#64748b', lineHeight: 1.5 },
 
   empty: { textAlign: 'center', padding: 40, background: '#f8fafc', borderRadius: 12 },
   emptyIconWrap: { display: 'flex', justifyContent: 'center', marginBottom: 10, color: '#94a3b8' },

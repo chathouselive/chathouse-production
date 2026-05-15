@@ -51,10 +51,19 @@ export default function ListingCard({ listing }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isCommunity = listing.source === 'community'
+  const isIDX = listing.source === 'idx'
   const img = getListingImage(listing)
   const priceStr = isRentalPricing(listing.type)
     ? `$${Number(listing.price).toLocaleString()}/mo`
     : `$${Number(listing.price).toLocaleString()}`
+
+  /* IDX Compliance: comments may be disabled per idx_consumer_comments flag.
+     When false, we hide the comment count entirely on the card. Showing
+     "0 comments" or "Comments disabled" on every IDX card is bad UX — the
+     repetition trains users to stop reading. Empty space keeps cards calm
+     and lets the price/address remain the visual anchor. The disabled
+     disclaimer (with reason) lives on the listing detail page instead. */
+  const commentsAllowed = !isIDX || listing.idx_consumer_comments === true
 
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(listing.likes_count || 0)
@@ -125,9 +134,13 @@ export default function ListingCard({ listing }) {
             {listing.sqft != null && <span>· {Number(listing.sqft).toLocaleString()} sqft</span>}
           </div>
           <div style={styles.footer}>
-            <span style={styles.footerStat}>
-              <Icon.Message/> {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
-            </span>
+            {commentsAllowed ? (
+              <span style={styles.footerStat}>
+                <Icon.Message/> {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+              </span>
+            ) : (
+              <span/>
+            )}
             <button
               onClick={handleLike}
               style={{ ...styles.likeBtn, color: liked ? '#ef4444' : '#94a3b8' }}
