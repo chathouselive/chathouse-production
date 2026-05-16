@@ -223,6 +223,8 @@ export default function ListingDetail() {
   const isCommunity = listing.source === 'community'
   const isIDX = listing.source === 'idx'
   const hasGallery = photos.length >= 2
+  const isArchived = listing.archived_at != null
+  const isAdmin = profile?.is_admin === true
 
   /* ============================================================
      IDX Compliance gate: idx_consumer_comments
@@ -289,6 +291,19 @@ export default function ListingDetail() {
             </button>
           )}
         </div>
+
+        {/* ARCHIVED banner — admins only, prominent placement above price.
+            Admin needs to see archive state instantly when reviewing a
+            listing. The detail page is where careful review happens, so
+            the banner is intentionally loud. */}
+        {isAdmin && isArchived && (
+          <div style={styles.archivedBanner}>
+            <div style={styles.archivedBannerLabel}>ARCHIVED</div>
+            <div style={styles.archivedBannerDate}>
+              Archived {new Date(listing.archived_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+        )}
 
         <div style={styles.header}>
           <div style={styles.priceRow}>
@@ -553,6 +568,30 @@ const styles = {
     backdropFilter: 'blur(8px)',
     boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
     transition: 'background 120ms ease, transform 120ms ease',
+  },
+
+  /* ARCHIVED banner — loud amber bar above the price section.
+     Admins only. Intentionally hard to miss. */
+  archivedBanner: {
+    display: 'flex', alignItems: 'center', gap: 14,
+    padding: '14px 20px',
+    background: '#d97706',
+    color: '#fff',
+    borderRadius: 12,
+    marginBottom: 12,
+    boxShadow: '0 2px 8px rgba(217,119,6,0.3)',
+  },
+  archivedBannerLabel: {
+    fontFamily: 'var(--serif)',
+    fontSize: 14, fontWeight: 800,
+    letterSpacing: 2,
+    background: 'rgba(255,255,255,0.2)',
+    padding: '4px 12px',
+    borderRadius: 6,
+  },
+  archivedBannerDate: {
+    fontSize: 13, fontWeight: 600,
+    opacity: 0.95,
   },
 
   header: {

@@ -48,10 +48,12 @@ function getTypeBadge(type) {
 }
 
 export default function ListingCard({ listing }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   const isCommunity = listing.source === 'community'
   const isIDX = listing.source === 'idx'
+  const isArchived = listing.archived_at != null
+  const isAdmin = profile?.is_admin === true
   const img = getListingImage(listing)
   const priceStr = isRentalPricing(listing.type)
     ? `$${Number(listing.price).toLocaleString()}/mo`
@@ -121,6 +123,16 @@ export default function ListingCard({ listing }) {
               <Icon.Building/> Community Listed
             </div>
           )}
+          {/* ARCHIVED badge — admins only. Renders for any archived listing
+              (RLS allows admins to see archived rows alongside active ones).
+              Visual cue prevents admin confusion about what's live vs not.
+              Bottom-left avoids fighting with Community (top-left) and
+              type tag (top-right). */}
+          {isAdmin && isArchived && (
+            <div style={styles.archivedBadge}>
+              ARCHIVED
+            </div>
+          )}
         </div>
         <div style={styles.body}>
           <div style={styles.price}>{priceStr}</div>
@@ -183,6 +195,18 @@ const styles = {
     borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
     borderRadius: 100, fontSize: 10, fontWeight: 700,
     letterSpacing: 0.3, textTransform: 'uppercase',
+  },
+  /* ARCHIVED badge — bottom-left of image, amber to match admin Archive
+     theme. Only renders for admins on archived listings. */
+  archivedBadge: {
+    position: 'absolute', bottom: 12, left: 12,
+    padding: '4px 10px',
+    background: '#d97706',
+    color: '#fff',
+    borderRadius: 100,
+    fontSize: 10, fontWeight: 800,
+    letterSpacing: 1,
+    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
   },
   body: { padding: 16 },
   price: { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 2 },
