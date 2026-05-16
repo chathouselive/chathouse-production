@@ -1,37 +1,30 @@
 // =============================================================================
-// njmls-photo-sync Edge Function — v1 (hero photos only)
+// njmls-photo-sync Edge Function — v2 (hero + gallery)
 // -----------------------------------------------------------------------------
-// Downloads Order=0 (hero) photos for IDX listings that don't yet have a photo.
+// Downloads photos from NJMLS for IDX listings. Two phases per invocation:
 //
-// What it does:
-//   1. Auths to NJMLS (same OAuth flow as njmls-sync)
-//   2. Queries listings WHERE source='idx' AND img_url IS NULL
-//   3. For each listing (batched, max 25 per invocation):
-//      - Fetch Order=0 media record from NJMLS Media endpoint
-//      - Download image bytes from Paragon CDN
-//      - Upload to listing-photos/idx/{listing_key}/{media_key}.jpg
-//      - INSERT row into listing_media table
-//      - UPDATE listings.img_url to point to Supabase Storage URL
-//   4. Returns summary
+//   Phase 1 (hero): for listings WHERE img_url IS NULL, fetch Order=0 photo,
+//                   upload to Storage, INSERT listing_media row, UPDATE
+//                   listings.img_url. Same as v1 behavior.
 //
-// What it does NOT do:
-//   - Photos 2-N (gallery shots — separate workstream)
-//   - Re-sync changed photos
-//   - Cron scheduling
-//   - Sold-listing first-photo-only rule (already naturally compliant since
-//     we only pull Order=0)
+//   Phase 2 (gallery): for listings WHERE img_url IS NOT NULL AND
+//                   idx_gallery_synced_at IS NULL, fetch Orders 1-19,
+//                   upload each, INSERT listing_media rows, UPDATE
+//                   listings.idx_gallery_synced_at = now().
+//                   Capped at GALLERY_BATCH_SIZE listings per run to
+//                   keep within the 120s safety budget.
 //
-// Required env vars (all already configured):
-//   - NJMLS_USERNAME, NJMLS_PASSWORD
-//   - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-//
-// Storage:
-//   - Bucket: listing-photos (public, already exists)
-//   - Path: idx/{listing_key}/{media_key}.jpg
+// NJMLS Section 13.1 compliance:
+//   - Sold listings (idx_standard_status = 'Closed') may only display
+//     the first photo. For these, Phase 2 skips photo download entirely
+//     and just marks idx_gallery_synced_at to remove them from the queue.
+//   - All non-Closed listings get up to 20 photos total (1 hero + 19 gallery).
 //
 // Safety limits:
-//   - Max 25 listings processed per invocation
+//   - Max DEFAULT_BATCH_SIZE listings in Phase 1 (default 25, max 100)
+//   - Max GALLERY_BATCH_SIZE listings in Phase 2 (default 5, max 20)
 //   - Max 120 seconds total runtime
+//   - MAX_GALLERY_PHOTOS_PER_LISTING = 19 (giving 20 total with hero)
 //   - Per-listing errors logged but don't crash the run
 // =============================================================================
 
@@ -44,6 +37,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 const DEFAULT_BATCH_SIZE = 25;
 const MAX_BATCH_SIZE = 100;
+const DEFAULT_GALLERY_BATCH_SIZE = 5;
+const MAX_GALLERY_BATCH_SIZE = 20;
+const MAX_GALLERY_PHOTOS_PER_LISTING = 19; // 19 + 1 hero = 20 total
 const MAX_RUNTIME_MS = 120_000;
 const STORAGE_BUCKET = "listing-photos";
 
@@ -90,8 +86,12 @@ serve(async (req) => {
     return Date.now() - startedAt;
   }
 
+  function timedOut(): boolean {
+    return elapsedMs() >= MAX_RUNTIME_MS;
+  }
+
   try {
-    logStep("njmls-photo-sync invoked");
+    logStep("njmls-photo-sync v2 invoked");
 
     // -------------------------------------------------------------------------
     // 1. Verify env vars
@@ -109,116 +109,183 @@ serve(async (req) => {
     logStep("env vars present");
 
     // -------------------------------------------------------------------------
-    // 2. Parse batch size from query string
+    // 2. Parse batch sizes from query string
     // -------------------------------------------------------------------------
     const url = new URL(req.url);
+
     const batchParam = url.searchParams.get("batch");
-    let batchSize = DEFAULT_BATCH_SIZE;
+    let heroBatchSize = DEFAULT_BATCH_SIZE;
     if (batchParam) {
       const parsed = parseInt(batchParam, 10);
       if (!isNaN(parsed) && parsed > 0) {
-        batchSize = Math.min(parsed, MAX_BATCH_SIZE);
+        heroBatchSize = Math.min(parsed, MAX_BATCH_SIZE);
       }
     }
-    logStep(`batch size = ${batchSize}`);
+
+    const galleryParam = url.searchParams.get("gallery");
+    let galleryBatchSize = DEFAULT_GALLERY_BATCH_SIZE;
+    if (galleryParam) {
+      const parsed = parseInt(galleryParam, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        galleryBatchSize = Math.min(parsed, MAX_GALLERY_BATCH_SIZE);
+      }
+    }
+
+    logStep(`hero batch size = ${heroBatchSize}, gallery batch size = ${galleryBatchSize}`);
 
     // -------------------------------------------------------------------------
-    // 3. Supabase client (service_role bypasses RLS)
+    // 3. Supabase client
     // -------------------------------------------------------------------------
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
     // -------------------------------------------------------------------------
-    // 4. Find IDX listings without a photo
+    // 4. Track stats across both phases
     // -------------------------------------------------------------------------
-    const { data: listings, error: queryError } = await supabase
+    const stats = {
+      hero: {
+        found: 0,
+        processed: 0,
+        uploaded: 0,
+        no_photo_available: 0,
+        errors: 0,
+        error_details: [] as string[],
+      },
+      gallery: {
+        found: 0,
+        processed: 0,
+        listings_completed: 0,
+        photos_uploaded: 0,
+        sold_skipped: 0,
+        errors: 0,
+        error_details: [] as string[],
+      },
+      hit_timeout: false,
+    };
+
+    // -------------------------------------------------------------------------
+    // 5. Get auth token (used by both phases)
+    // -------------------------------------------------------------------------
+    const token = await getToken(logStep);
+
+    // =========================================================================
+    // PHASE 1 — Hero photos (img_url IS NULL)
+    // =========================================================================
+    const { data: heroListings, error: heroQueryError } = await supabase
       .from("listings")
       .select("id, idx_listing_key")
       .eq("source", "idx")
       .is("img_url", null)
       .not("idx_listing_key", "is", null)
-      .limit(batchSize);
+      .limit(heroBatchSize);
 
-    if (queryError) {
+    if (heroQueryError) {
       return errorResponse(
         500,
-        `Failed to fetch listings: ${queryError.message}`,
+        `Failed to fetch hero listings: ${heroQueryError.message}`,
         log
       );
     }
 
-    const listingsArr = listings || [];
-    logStep(`found ${listingsArr.length} listings without photos`);
+    const heroArr = heroListings || [];
+    stats.hero.found = heroArr.length;
+    logStep(`Phase 1: found ${heroArr.length} listings needing hero photo`);
 
-    if (listingsArr.length === 0) {
-      return successResponse({
-        ok: true,
-        stats: {
-          found: 0,
-          processed: 0,
-          photos_uploaded: 0,
-          no_photo_available: 0,
-          errors: 0,
-        },
-        elapsed_ms: elapsedMs(),
-        log,
-      });
-    }
-
-    // -------------------------------------------------------------------------
-    // 5. Auth to NJMLS
-    // -------------------------------------------------------------------------
-    const token = await getToken(logStep);
-
-    // -------------------------------------------------------------------------
-    // 6. Process each listing
-    // -------------------------------------------------------------------------
-    const stats = {
-      found: listingsArr.length,
-      processed: 0,
-      photos_uploaded: 0,
-      no_photo_available: 0,
-      errors: 0,
-      error_details: [] as string[],
-      hit_timeout: false,
-    };
-
-    for (const listing of listingsArr) {
-      // Safety: timeout check
-      if (elapsedMs() >= MAX_RUNTIME_MS) {
+    for (const listing of heroArr) {
+      if (timedOut()) {
         stats.hit_timeout = true;
-        logStep(`hit MAX_RUNTIME_MS (${MAX_RUNTIME_MS}ms), stopping`);
+        logStep(`hit MAX_RUNTIME_MS in Phase 1, stopping`);
         break;
       }
 
-      stats.processed++;
-      const result = await processListing(
+      stats.hero.processed++;
+      const result = await processHeroPhoto(
         listing.id,
         listing.idx_listing_key,
         token,
-        supabase,
-        logStep
+        supabase
       );
 
       if (result.status === "uploaded") {
-        stats.photos_uploaded++;
+        stats.hero.uploaded++;
       } else if (result.status === "no_photo") {
-        stats.no_photo_available++;
+        stats.hero.no_photo_available++;
       } else {
-        stats.errors++;
-        stats.error_details.push(
+        stats.hero.errors++;
+        stats.hero.error_details.push(
           `listing_id=${listing.id} key=${listing.idx_listing_key}: ${result.error}`
         );
       }
     }
 
     logStep(
-      `done: ${stats.photos_uploaded} uploaded, ${stats.no_photo_available} no photo, ${stats.errors} errors`
+      `Phase 1 done: ${stats.hero.uploaded} uploaded, ${stats.hero.no_photo_available} no photo, ${stats.hero.errors} errors`
     );
 
+    // =========================================================================
+    // PHASE 2 — Gallery photos (idx_gallery_synced_at IS NULL)
+    // =========================================================================
+    if (!stats.hit_timeout && galleryBatchSize > 0) {
+      const { data: galleryListings, error: galleryQueryError } = await supabase
+        .from("listings")
+        .select("id, idx_listing_key, idx_standard_status")
+        .eq("source", "idx")
+        .not("img_url", "is", null)
+        .is("idx_gallery_synced_at", null)
+        .not("idx_listing_key", "is", null)
+        .limit(galleryBatchSize);
+
+      if (galleryQueryError) {
+        logStep(`Phase 2 query failed: ${galleryQueryError.message}`);
+      } else {
+        const galleryArr = galleryListings || [];
+        stats.gallery.found = galleryArr.length;
+        logStep(`Phase 2: found ${galleryArr.length} listings needing gallery`);
+
+        for (const listing of galleryArr) {
+          if (timedOut()) {
+            stats.hit_timeout = true;
+            logStep(`hit MAX_RUNTIME_MS in Phase 2, stopping`);
+            break;
+          }
+
+          stats.gallery.processed++;
+          const result = await processGallery(
+            listing.id,
+            listing.idx_listing_key,
+            listing.idx_standard_status,
+            token,
+            supabase
+          );
+
+          if (result.status === "completed") {
+            stats.gallery.listings_completed++;
+            stats.gallery.photos_uploaded += result.photos_uploaded || 0;
+          } else if (result.status === "sold_skipped") {
+            stats.gallery.sold_skipped++;
+          } else {
+            stats.gallery.errors++;
+            stats.gallery.error_details.push(
+              `listing_id=${listing.id} key=${listing.idx_listing_key}: ${result.error}`
+            );
+          }
+        }
+
+        logStep(
+          `Phase 2 done: ${stats.gallery.listings_completed} listings completed (${stats.gallery.photos_uploaded} photos), ${stats.gallery.sold_skipped} sold-skipped, ${stats.gallery.errors} errors`
+        );
+      }
+    } else if (galleryBatchSize === 0) {
+      logStep("Phase 2 skipped (gallery=0)");
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. Return summary
+    // -------------------------------------------------------------------------
+    const ok = stats.hero.errors === 0 && stats.gallery.errors === 0;
     return successResponse({
-      ok: stats.errors === 0,
+      ok,
       stats,
       elapsed_ms: elapsedMs(),
       log,
@@ -230,25 +297,21 @@ serve(async (req) => {
 });
 
 // =============================================================================
-// Per-listing processing
+// Phase 1 helper — hero photo (Order=0)
 // =============================================================================
 
-type ProcessResult =
+type HeroResult =
   | { status: "uploaded" }
   | { status: "no_photo" }
   | { status: "error"; error: string };
 
-async function processListing(
+async function processHeroPhoto(
   listingId: number,
   listingKey: string,
   token: string,
-  supabase: any,
-  logStep: (m: string) => void
-): Promise<ProcessResult> {
+  supabase: any
+): Promise<HeroResult> {
   try {
-    // ---------------------------------------------------------------------
-    // a. Fetch Order=0 media record from NJMLS
-    // ---------------------------------------------------------------------
     const filter = encodeURIComponent(
       `ResourceRecordKey eq '${listingKey}' and Order eq 0`
     );
@@ -259,47 +322,211 @@ async function processListing(
     });
 
     if (!mediaRes.ok) {
-      return {
-        status: "error",
-        error: `Media fetch failed ${mediaRes.status}`,
-      };
+      return { status: "error", error: `Media fetch failed ${mediaRes.status}` };
     }
 
     const mediaData = await mediaRes.json();
     const records = mediaData.value || [];
 
-    if (records.length === 0) {
+    if (records.length === 0 || !records[0].MediaURL) {
       return { status: "no_photo" };
     }
 
     const media = records[0];
-    if (!media.MediaURL) {
-      return { status: "no_photo" };
+    const uploadResult = await downloadAndUpload(
+      media.MediaURL,
+      `idx/${listingKey}/${media.MediaKey}.jpg`,
+      supabase
+    );
+
+    if (!uploadResult.ok) {
+      return { status: "error", error: uploadResult.error };
     }
 
-    // ---------------------------------------------------------------------
-    // b. Download image bytes from Paragon CDN
-    // ---------------------------------------------------------------------
-    const imageRes = await fetch(media.MediaURL);
+    // Insert listing_media row
+    const { error: insertError } = await supabase
+      .from("listing_media")
+      .upsert(
+        {
+          listing_id: listingId,
+          idx_listing_key: listingKey,
+          media_key: media.MediaKey,
+          media_category: media.MediaCategory ?? null,
+          display_order: 0,
+          source_url: media.MediaURL,
+          storage_url: uploadResult.publicUrl,
+          image_width: media.ImageWidth ?? null,
+          image_height: media.ImageHeight ?? null,
+          modification_timestamp: media.ModificationTimestamp ?? null,
+        },
+        { onConflict: "idx_listing_key,media_key" }
+      );
+
+    if (insertError) {
+      return { status: "error", error: `listing_media insert: ${insertError.message}` };
+    }
+
+    // Update listings.img_url
+    const { error: updateError } = await supabase
+      .from("listings")
+      .update({
+        img_url: uploadResult.publicUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", listingId);
+
+    if (updateError) {
+      return { status: "error", error: `listings update: ${updateError.message}` };
+    }
+
+    return { status: "uploaded" };
+  } catch (err: any) {
+    return { status: "error", error: err?.message || String(err) };
+  }
+}
+
+// =============================================================================
+// Phase 2 helper — gallery photos (Orders 1-19, sold-listing rule applies)
+// =============================================================================
+
+type GalleryResult =
+  | { status: "completed"; photos_uploaded: number }
+  | { status: "sold_skipped" }
+  | { status: "error"; error: string };
+
+async function processGallery(
+  listingId: number,
+  listingKey: string,
+  standardStatus: string | null,
+  token: string,
+  supabase: any
+): Promise<GalleryResult> {
+  try {
+    // NJMLS Section 13.1 compliance: sold listings get hero only.
+    // Mark gallery_synced_at to remove from queue without downloading.
+    if (standardStatus === "Closed") {
+      const { error: markError } = await supabase
+        .from("listings")
+        .update({ idx_gallery_synced_at: new Date().toISOString() })
+        .eq("id", listingId);
+
+      if (markError) {
+        return { status: "error", error: `sold-skip mark: ${markError.message}` };
+      }
+      return { status: "sold_skipped" };
+    }
+
+    // Fetch Orders 1 through MAX_GALLERY_PHOTOS_PER_LISTING
+    // OData syntax: Order ge 1 and Order le 19, ordered by Order
+    const filter = encodeURIComponent(
+      `ResourceRecordKey eq '${listingKey}' and Order ge 1 and Order le ${MAX_GALLERY_PHOTOS_PER_LISTING}`
+    );
+    const mediaUrl = `${SERVICE_ROOT}/Media?$top=${MAX_GALLERY_PHOTOS_PER_LISTING}&$orderby=Order asc&$filter=${filter}`;
+
+    const mediaRes = await fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!mediaRes.ok) {
+      return { status: "error", error: `Media fetch failed ${mediaRes.status}` };
+    }
+
+    const mediaData = await mediaRes.json();
+    const records = mediaData.value || [];
+
+    // Even if records is empty (listing has only hero photo), we mark
+    // gallery_synced_at so we don't re-attempt this listing every run.
+    let uploadedCount = 0;
+    const errors: string[] = [];
+
+    for (const media of records) {
+      if (!media.MediaURL) continue;
+
+      const uploadResult = await downloadAndUpload(
+        media.MediaURL,
+        `idx/${listingKey}/${media.MediaKey}.jpg`,
+        supabase
+      );
+
+      if (!uploadResult.ok) {
+        errors.push(`order ${media.Order}: ${uploadResult.error}`);
+        continue;
+      }
+
+      const { error: insertError } = await supabase
+        .from("listing_media")
+        .upsert(
+          {
+            listing_id: listingId,
+            idx_listing_key: listingKey,
+            media_key: media.MediaKey,
+            media_category: media.MediaCategory ?? null,
+            display_order: media.Order,
+            source_url: media.MediaURL,
+            storage_url: uploadResult.publicUrl,
+            image_width: media.ImageWidth ?? null,
+            image_height: media.ImageHeight ?? null,
+            modification_timestamp: media.ModificationTimestamp ?? null,
+          },
+          { onConflict: "idx_listing_key,media_key" }
+        );
+
+      if (insertError) {
+        errors.push(`order ${media.Order} insert: ${insertError.message}`);
+        continue;
+      }
+
+      uploadedCount++;
+    }
+
+    // Mark complete regardless of individual photo errors — we tried this
+    // listing, partial success is still success at the listing level.
+    const { error: markError } = await supabase
+      .from("listings")
+      .update({
+        idx_gallery_synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", listingId);
+
+    if (markError) {
+      return { status: "error", error: `mark complete: ${markError.message}` };
+    }
+
+    if (errors.length > 0 && uploadedCount === 0) {
+      // Total failure — surface the first error
+      return { status: "error", error: errors[0] };
+    }
+
+    return { status: "completed", photos_uploaded: uploadedCount };
+  } catch (err: any) {
+    return { status: "error", error: err?.message || String(err) };
+  }
+}
+
+// =============================================================================
+// Shared helper — download from CDN, upload to Storage, return public URL
+// =============================================================================
+
+type UploadResult = { ok: true; publicUrl: string } | { ok: false; error: string };
+
+async function downloadAndUpload(
+  sourceUrl: string,
+  storagePath: string,
+  supabase: any
+): Promise<UploadResult> {
+  try {
+    const imageRes = await fetch(sourceUrl);
     if (!imageRes.ok) {
-      return {
-        status: "error",
-        error: `Image download failed ${imageRes.status}`,
-      };
+      return { ok: false, error: `Image download failed ${imageRes.status}` };
     }
 
     const contentType = imageRes.headers.get("content-type") || "image/jpeg";
     const imageBytes = await imageRes.arrayBuffer();
 
     if (imageBytes.byteLength === 0) {
-      return { status: "error", error: "Image download returned 0 bytes" };
+      return { ok: false, error: "Image download returned 0 bytes" };
     }
-
-    // ---------------------------------------------------------------------
-    // c. Upload to Supabase Storage
-    // ---------------------------------------------------------------------
-    const fileExt = guessExtension(contentType);
-    const storagePath = `idx/${listingKey}/${media.MediaKey}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -309,95 +536,25 @@ async function processListing(
       });
 
     if (uploadError) {
-      return {
-        status: "error",
-        error: `Storage upload failed: ${uploadError.message}`,
-      };
+      return { ok: false, error: `Storage upload: ${uploadError.message}` };
     }
 
-    // ---------------------------------------------------------------------
-    // d. Build public URL
-    // ---------------------------------------------------------------------
     const { data: publicUrlData } = supabase.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(storagePath);
 
-    const publicUrl = publicUrlData?.publicUrl;
-    if (!publicUrl) {
-      return {
-        status: "error",
-        error: "Failed to construct public URL",
-      };
+    if (!publicUrlData?.publicUrl) {
+      return { ok: false, error: "Failed to construct public URL" };
     }
 
-    // ---------------------------------------------------------------------
-    // e. Insert row into listing_media
-    // ---------------------------------------------------------------------
-    const mediaRow = {
-      listing_id: listingId,
-      idx_listing_key: listingKey,
-      media_key: media.MediaKey,
-      media_category: media.MediaCategory ?? null,
-      display_order: media.Order ?? 0,
-      source_url: media.MediaURL,
-      storage_url: publicUrl,
-      image_width: media.ImageWidth ?? null,
-      image_height: media.ImageHeight ?? null,
-      modification_timestamp: media.ModificationTimestamp ?? null,
-    };
-
-    const { error: insertError } = await supabase
-      .from("listing_media")
-      .upsert(mediaRow, { onConflict: "idx_listing_key,media_key" });
-
-    if (insertError) {
-      return {
-        status: "error",
-        error: `listing_media insert failed: ${insertError.message}`,
-      };
-    }
-
-    // ---------------------------------------------------------------------
-    // f. Update listings.img_url
-    // ---------------------------------------------------------------------
-    const { error: updateError } = await supabase
-      .from("listings")
-      .update({
-        img_url: publicUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", listingId);
-
-    if (updateError) {
-      return {
-        status: "error",
-        error: `listings.img_url update failed: ${updateError.message}`,
-      };
-    }
-
-    return { status: "uploaded" };
+    return { ok: true, publicUrl: publicUrlData.publicUrl };
   } catch (err: any) {
-    return {
-      status: "error",
-      error: err?.message || String(err),
-    };
+    return { ok: false, error: err?.message || String(err) };
   }
 }
 
 // =============================================================================
-// Helpers
-// =============================================================================
-
-function guessExtension(contentType: string): string {
-  const ct = contentType.toLowerCase();
-  if (ct.includes("png")) return "png";
-  if (ct.includes("webp")) return "webp";
-  if (ct.includes("gif")) return "gif";
-  return "jpg";
-}
-
-// =============================================================================
-// Auth helper (same pattern as njmls-sync)
+// Auth helper
 // =============================================================================
 
 async function getToken(logStep: (m: string) => void): Promise<string> {

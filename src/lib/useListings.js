@@ -251,6 +251,61 @@ export function useListing(id) {
   return { listing, loading, error }
 }
 
+/* ============================================================
+   useListingPhotos — fetches all photos for a listing
+   --------------------------------------------------------------
+   Returns rows from listing_media ordered by display_order asc.
+   - display_order 0 is the hero photo
+   - display_order 1+ are gallery photos
+   - For sold listings (idx_standard_status='Closed'), the sync
+     function already skipped gallery photos at sync time. As
+     defense-in-depth, the consuming UI component should ALSO
+     filter display_order > 0 when status='Closed'. This hook
+     returns the full set; the component applies the filter.
+
+   Returns:
+     photos  — array of { id, display_order, storage_url,
+                          image_width, image_height, media_key }
+     loading — true while fetching
+     error   — error message or null
+   ============================================================ */
+export function useListingPhotos(listingId) {
+  const [photos, setPhotos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!listingId) {
+      setPhotos([])
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    async function fetch() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('listing_media')
+        .select('id, display_order, storage_url, image_width, image_height, media_key')
+        .eq('listing_id', listingId)
+        .order('display_order', { ascending: true })
+      if (cancelled) return
+      if (error) {
+        setError(error.message)
+        setPhotos([])
+      } else {
+        setPhotos(data || [])
+      }
+      setLoading(false)
+    }
+    fetch()
+    return () => {
+      cancelled = true
+    }
+  }, [listingId])
+
+  return { photos, loading, error }
+}
+
 export async function toggleListingLike(listingId, userId, currentLiked, currentCount) {
   if (!userId) return { liked: currentLiked, count: currentCount }
 

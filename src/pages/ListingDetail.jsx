@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import TopNav from '../components/TopNav'
 import Comment from '../components/Comment'
 import CommentForm from '../components/CommentForm'
 import VerifyTenantModal from '../components/VerifyTenantModal'
+import PhotoGalleryModal from '../components/PhotoGalleryModal'
 import Footer from '../components/Footer'
 import WalkabilityScores from '../components/WalkabilityScores'
 import RiskReportSection from '../components/RiskReportSection'
-import { useListing } from '../lib/useListings'
+import { useListing, useListingPhotos } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
 import { getListingImage } from '../lib/streetView'
@@ -92,6 +93,13 @@ const Icon = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   ),
+  /* Camera — for gallery button */
+  Camera: ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  ),
 }
 
 export default function ListingDetail() {
@@ -99,9 +107,11 @@ export default function ListingDetail() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
   const { listing, loading } = useListing(id)
+  const { photos: allPhotos } = useListingPhotos(listing?.id)
   const { comments, loading: loadingComments, postComment, toggleLike } = useComments(id)
   const { status: verificationStatus, submitVerification } = useVerification(id)
   const [showVerifyModal, setShowVerifyModal] = useState(false)
+  const [showGallery, setShowGallery] = useState(false)
   const [claiming, setClaiming] = useState(false)
   const [claimSubmitted, setClaimSubmitted] = useState(false)
   const [showClaimForm, setShowClaimForm] = useState(false)
@@ -111,6 +121,23 @@ export default function ListingDetail() {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [liking, setLiking] = useState(false)
+
+  /* ============================================================
+     Compliance filter for photos
+     --------------------------------------------------------------
+     NJMLS Section 13.1: sold listings may only display the FIRST
+     photo. Our sync function already enforces this at sync time
+     (skips Orders 1+ when idx_standard_status='Closed'), but as
+     defense-in-depth, the UI also filters here at display time.
+     If somehow a Closed listing has gallery rows, we hide them.
+     ============================================================ */
+  const photos = useMemo(() => {
+    if (!allPhotos || allPhotos.length === 0) return []
+    if (listing?.idx_standard_status === 'Closed') {
+      return allPhotos.filter((p) => p.display_order === 0)
+    }
+    return allPhotos
+  }, [allPhotos, listing?.idx_standard_status])
 
   useEffect(() => {
     if (listing) setLikeCount(listing.likes_count || 0)
@@ -195,6 +222,7 @@ export default function ListingDetail() {
     : 'Price not listed'
   const isCommunity = listing.source === 'community'
   const isIDX = listing.source === 'idx'
+  const hasGallery = photos.length >= 2
 
   /* ============================================================
      IDX Compliance gate: idx_consumer_comments
@@ -248,6 +276,18 @@ export default function ListingDetail() {
             </div>
           )}
           {isIDX && <div style={styles.idxBadge}>IDX</div>}
+
+          {/* Gallery button — bottom-right of hero, only when 2+ photos */}
+          {hasGallery && (
+            <button
+              onClick={() => setShowGallery(true)}
+              style={styles.galleryBtn}
+              aria-label={`View all ${photos.length} photos`}
+            >
+              <Icon.Camera size={14}/>
+              <span>View all {photos.length} photos</span>
+            </button>
+          )}
         </div>
 
         <div style={styles.header}>
@@ -455,6 +495,13 @@ export default function ListingDetail() {
           onSubmit={submitVerification}
         />
       )}
+
+      {showGallery && (
+        <PhotoGalleryModal
+          photos={photos}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
     </div>
   )
 }
@@ -491,6 +538,21 @@ const styles = {
     background: 'rgba(26,108,245,0.9)',
     borderRadius: 100, color: '#fff',
     fontSize: 11, fontWeight: 700, letterSpacing: 1,
+  },
+
+  /* Gallery button — bottom-right of hero */
+  galleryBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    position: 'absolute', bottom: 16, right: 16,
+    padding: '8px 14px',
+    background: 'rgba(15, 23, 42, 0.82)',
+    color: '#fff',
+    border: 'none', borderRadius: 100,
+    fontSize: 12, fontWeight: 700,
+    cursor: 'pointer',
+    backdropFilter: 'blur(8px)',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+    transition: 'background 120ms ease, transform 120ms ease',
   },
 
   header: {
