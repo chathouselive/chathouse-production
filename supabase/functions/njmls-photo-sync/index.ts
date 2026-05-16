@@ -117,7 +117,7 @@ serve(async (req) => {
     let heroBatchSize = DEFAULT_BATCH_SIZE;
     if (batchParam) {
       const parsed = parseInt(batchParam, 10);
-      if (!isNaN(parsed) && parsed > 0) {
+      if (!isNaN(parsed) && parsed >= 0) {
         heroBatchSize = Math.min(parsed, MAX_BATCH_SIZE);
       }
     }
@@ -171,57 +171,68 @@ serve(async (req) => {
 
     // =========================================================================
     // PHASE 1 — Hero photos (img_url IS NULL)
+    // -------------------------------------------------------------------------
+    // Skips listings checked within the last 7 days that had no photo
+    // available (idx_photo_check_at). Re-checks them after 7 days in case
+    // the agent has since uploaded a photo. Saves NJMLS API calls.
     // =========================================================================
-    const { data: heroListings, error: heroQueryError } = await supabase
-      .from("listings")
-      .select("id, idx_listing_key")
-      .eq("source", "idx")
-      .is("img_url", null)
-      .not("idx_listing_key", "is", null)
-      .limit(heroBatchSize);
+    if (heroBatchSize === 0) {
+      logStep("Phase 1 skipped (batch=0)");
+    } else {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    if (heroQueryError) {
-      return errorResponse(
-        500,
-        `Failed to fetch hero listings: ${heroQueryError.message}`,
-        log
-      );
-    }
+      const { data: heroListings, error: heroQueryError } = await supabase
+        .from("listings")
+        .select("id, idx_listing_key")
+        .eq("source", "idx")
+        .is("img_url", null)
+        .not("idx_listing_key", "is", null)
+        .or(`idx_photo_check_at.is.null,idx_photo_check_at.lt.${sevenDaysAgo}`)
+        .limit(heroBatchSize);
 
-    const heroArr = heroListings || [];
-    stats.hero.found = heroArr.length;
-    logStep(`Phase 1: found ${heroArr.length} listings needing hero photo`);
-
-    for (const listing of heroArr) {
-      if (timedOut()) {
-        stats.hit_timeout = true;
-        logStep(`hit MAX_RUNTIME_MS in Phase 1, stopping`);
-        break;
-      }
-
-      stats.hero.processed++;
-      const result = await processHeroPhoto(
-        listing.id,
-        listing.idx_listing_key,
-        token,
-        supabase
-      );
-
-      if (result.status === "uploaded") {
-        stats.hero.uploaded++;
-      } else if (result.status === "no_photo") {
-        stats.hero.no_photo_available++;
-      } else {
-        stats.hero.errors++;
-        stats.hero.error_details.push(
-          `listing_id=${listing.id} key=${listing.idx_listing_key}: ${result.error}`
+      if (heroQueryError) {
+        return errorResponse(
+          500,
+          `Failed to fetch hero listings: ${heroQueryError.message}`,
+          log
         );
       }
-    }
 
-    logStep(
-      `Phase 1 done: ${stats.hero.uploaded} uploaded, ${stats.hero.no_photo_available} no photo, ${stats.hero.errors} errors`
-    );
+      const heroArr = heroListings || [];
+      stats.hero.found = heroArr.length;
+      logStep(`Phase 1: found ${heroArr.length} listings needing hero photo`);
+
+      for (const listing of heroArr) {
+        if (timedOut()) {
+          stats.hit_timeout = true;
+          logStep(`hit MAX_RUNTIME_MS in Phase 1, stopping`);
+          break;
+        }
+
+        stats.hero.processed++;
+        const result = await processHeroPhoto(
+          listing.id,
+          listing.idx_listing_key,
+          token,
+          supabase
+        );
+
+        if (result.status === "uploaded") {
+          stats.hero.uploaded++;
+        } else if (result.status === "no_photo") {
+          stats.hero.no_photo_available++;
+        } else {
+          stats.hero.errors++;
+          stats.hero.error_details.push(
+            `listing_id=${listing.id} key=${listing.idx_listing_key}: ${result.error}`
+          );
+        }
+      }
+
+      logStep(
+        `Phase 1 done: ${stats.hero.uploaded} uploaded, ${stats.hero.no_photo_available} no photo, ${stats.hero.errors} errors`
+      );
+    }
 
     // =========================================================================
     // PHASE 2 — Gallery photos (idx_gallery_synced_at IS NULL)
@@ -329,6 +340,13 @@ async function processHeroPhoto(
     const records = mediaData.value || [];
 
     if (records.length === 0 || !records[0].MediaURL) {
+      // Mark this listing as checked. Phase 1 query skips listings whose
+      // idx_photo_check_at is within the last 7 days, so we won't hit
+      // NJMLS again for this listing until that window elapses.
+      await supabase
+        .from("listings")
+        .update({ idx_photo_check_at: new Date().toISOString() })
+        .eq("id", listingId);
       return { status: "no_photo" };
     }
 
