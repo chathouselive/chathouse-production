@@ -19,6 +19,7 @@ import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminPhotos from './pages/admin/AdminPhotos'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminListings from './pages/admin/AdminListings'
+import AdminArchived from './pages/admin/AdminArchived'
 import AdminSync from './pages/admin/AdminSync'
 import AdminClaims from './pages/admin/AdminClaims'
 import PrivacyPolicy from './pages/PrivacyPolicy'
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/admin/photos" element={<ProtectedRoute><AdminPhotos /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="/admin/listings" element={<ProtectedRoute><AdminListings /></ProtectedRoute>} />
+        <Route path="/admin/archived" element={<ProtectedRoute><AdminArchived /></ProtectedRoute>} />
         <Route path="/admin/sync" element={<ProtectedRoute><AdminSync /></ProtectedRoute>} />
         <Route path="/admin/claims" element={<ProtectedRoute><AdminClaims /></ProtectedRoute>} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

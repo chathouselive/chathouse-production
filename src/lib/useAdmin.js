@@ -176,6 +176,7 @@ export function useAdminUsers(search = '') {
 }
 
 // ─── Listings directory (admin) ───
+// Excludes archived listings by default. Use useArchivedListings() to see them.
 export function useAdminListings({ source = 'all', search = '' } = {}) {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -185,6 +186,7 @@ export function useAdminListings({ source = 'all', search = '' } = {}) {
     let query = supabase
       .from('listings')
       .select('*')
+      .is('archived_at', null) // exclude archived from this view
       .order('created_at', { ascending: false })
       .limit(200)
     if (source !== 'all') query = query.eq('source', source)
@@ -196,17 +198,97 @@ export function useAdminListings({ source = 'all', search = '' } = {}) {
 
   useEffect(() => { load() }, [load])
 
-  async function deleteListing(id) {
-    await supabase.from('listings').delete().eq('id', id)
+  // Soft delete — sets archived_at to now(). Listing disappears from public
+  // view (per RLS policy) but is preserved in DB and recoverable.
+  // Returns { ok: true } on success or { ok: false, error: '...' } on failure.
+  async function archiveListing(id) {
+    const { error } = await supabase
+      .from('listings')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) {
+      return { ok: false, error: error.message }
+    }
     await load()
+    return { ok: true }
   }
 
+  // Toggle is_active flag — distinct from archive. Hide vs Archive:
+  //   Hide: temporary, listing still exists in DB, visible to admins,
+  //         can be unhidden. is_active = false.
+  //   Archive: soft delete, listing removed from main admin view,
+  //         visible only on Archived page, can be permanently deleted.
   async function toggleActive(id, isActive) {
-    await supabase.from('listings').update({ is_active: isActive }).eq('id', id)
+    const { error } = await supabase
+      .from('listings')
+      .update({ is_active: isActive })
+      .eq('id', id)
+    if (error) {
+      return { ok: false, error: error.message }
+    }
     await load()
+    return { ok: true }
   }
 
-  return { listings, loading, deleteListing, toggleActive, refresh: load }
+  return { listings, loading, archiveListing, toggleActive, refresh: load }
+}
+
+// ─── Archived listings (admin) ───
+// Only returns listings where archived_at IS NOT NULL.
+// Provides restore (un-archive) and permanentlyDelete (irreversible).
+export function useArchivedListings({ source = 'all', search = '' } = {}) {
+  const [listings, setListings] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    let query = supabase
+      .from('listings')
+      .select('*')
+      .not('archived_at', 'is', null) // only archived rows
+      .order('archived_at', { ascending: false })
+      .limit(200)
+    if (source !== 'all') query = query.eq('source', source)
+    if (search) query = query.or(`address.ilike.%${search}%,city.ilike.%${search}%`)
+    const { data } = await query
+    setListings(data || [])
+    setLoading(false)
+  }, [source, search])
+
+  useEffect(() => { load() }, [load])
+
+  // Restore an archived listing — clears archived_at, listing returns to public
+  // view (if is_active is also true, per RLS).
+  async function restoreListing(id) {
+    const { error } = await supabase
+      .from('listings')
+      .update({ archived_at: null })
+      .eq('id', id)
+    if (error) {
+      return { ok: false, error: error.message }
+    }
+    await load()
+    return { ok: true }
+  }
+
+  // PERMANENT — wipes the row from the database. Cascade deletes related
+  // comments, likes, claims, photo_submissions, risk_reports, listing_media,
+  // and tenant_verifications. SET NULL on messages.shared_listing_id (user
+  // messages preserved with broken reference). leads.listing_id also SET NULL.
+  // No recovery. Use with extreme caution.
+  async function permanentlyDeleteListing(id) {
+    const { error } = await supabase
+      .from('listings')
+      .delete()
+      .eq('id', id)
+    if (error) {
+      return { ok: false, error: error.message }
+    }
+    await load()
+    return { ok: true }
+  }
+
+  return { listings, loading, restoreListing, permanentlyDeleteListing, refresh: load }
 }
 
 // ─── Manual sync trigger ───

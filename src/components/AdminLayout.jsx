@@ -35,6 +35,7 @@ export default function AdminLayout({ children }) {
     { to: '/admin/claims', label: 'Claims', icon: '🏠', badge: counts.claims },
     { to: '/admin/users', label: 'Users', icon: '👥', badge: 0 },
     { to: '/admin/listings', label: 'Listings', icon: '🏘️', badge: 0 },
+    { to: '/admin/archived', label: 'Archived', icon: '🗄️', badge: 0 },
     { to: '/admin/sync', label: 'Sync', icon: '🔄', badge: 0 },
   ]
 
