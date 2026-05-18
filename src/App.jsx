@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
 import { GlobalStyles, Spinner } from './components/ui'
@@ -41,7 +42,32 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+// Validates UUID v4-ish format (loose — covers any 8-4-4-4-12 hex pattern)
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/* ============================================================
+   Captures ?ref={userId} from URL and stashes it in localStorage.
+   Read & applied during signup flow (email + Google OAuth).
+   - Runs once on App mount
+   - Validates UUID format before storing
+   - Doesn't overwrite an existing pending_ref (first invite wins)
+   ============================================================ */
+function captureReferral() {
+  if (typeof window === 'undefined') return
+  const params = new URLSearchParams(window.location.search)
+  const ref = params.get('ref')
+  if (!ref) return
+  if (!UUID_REGEX.test(ref)) return
+  // Don't overwrite — first invite a user clicks gets credit
+  if (localStorage.getItem('chathouse_pending_ref')) return
+  localStorage.setItem('chathouse_pending_ref', ref)
+}
+
 export default function App() {
+  useEffect(() => {
+    captureReferral()
+  }, [])
+
   return (
     <>
       <GlobalStyles />

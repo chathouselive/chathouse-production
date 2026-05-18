@@ -56,14 +56,21 @@ export function AuthProvider({ children }) {
   //   2. Row exists (e.g. created by a DB trigger with default values) → update its
   //      account_type if we have a stashed value, otherwise leave it alone
   // Reads localStorage for the account_type the user picked on the SignUp page.
+  // Also applies pending_ref (referral attribution) on first-time profile creation.
   async function ensureProfileExists(user) {
     if (!user) return
 
     // Read & clear the stash before any awaits so it can't leak into another flow
     const pendingAccountType = localStorage.getItem('chathouse_pending_account_type')
     const pendingCity = localStorage.getItem('chathouse_pending_city')
+    const pendingRef = localStorage.getItem('chathouse_pending_ref')
     localStorage.removeItem('chathouse_pending_account_type')
     localStorage.removeItem('chathouse_pending_city')
+    localStorage.removeItem('chathouse_pending_ref')
+
+    // Safety: users can't refer themselves (in case they clicked their own invite
+    // link before completing signup)
+    const validRef = pendingRef && pendingRef !== user.id ? pendingRef : null
 
     const meta = user.user_metadata || {}
     const name =
@@ -74,21 +81,29 @@ export function AuthProvider({ children }) {
 
     const { data: existing } = await supabase
       .from('profiles')
-      .select('id, account_type')
+      .select('id, account_type, referred_by')
       .eq('id', user.id)
       .maybeSingle()
 
     if (existing) {
       // Row already exists (likely via a DB trigger). Apply the stashed account_type
       // if we have one — this is the localStorage round-trip from SignUp → Google → back.
+      const updates = {}
       if (pendingAccountType && pendingAccountType !== existing.account_type) {
-        const updates = { account_type: pendingAccountType }
+        updates.account_type = pendingAccountType
         if (pendingCity) updates.city = pendingCity
+      }
+      // Only set referred_by if the row doesn't already have one (don't overwrite
+      // an existing referral, even if a new pending_ref shows up somehow)
+      if (validRef && !existing.referred_by) {
+        updates.referred_by = validRef
+      }
+      if (Object.keys(updates).length > 0) {
         const { error: updateErr } = await supabase
           .from('profiles')
           .update(updates)
           .eq('id', user.id)
-        if (updateErr) console.error('Error updating profile account_type:', updateErr)
+        if (updateErr) console.error('Error updating profile:', updateErr)
       }
       return
     }
@@ -102,6 +117,7 @@ export function AuthProvider({ children }) {
       account_type: pendingAccountType || meta.account_type || 'buyer',
       city: pendingCity || meta.city || null,
       photo_url: meta.avatar_url || meta.picture || null,
+      referred_by: validRef,
     })
 
     if (insertErr && insertErr.code !== '23505') {

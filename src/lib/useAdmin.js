@@ -148,6 +148,8 @@ export function usePhotoQueue(statusFilter = 'pending') {
 }
 
 // ─── Users directory ───
+// Returns user profiles + an invite_count field showing how many users have
+// each user as referred_by (i.e., how many people they've invited who signed up).
 export function useAdminUsers(search = '') {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -156,15 +158,45 @@ export function useAdminUsers(search = '') {
     let cancelled = false
     async function load() {
       setLoading(true)
+
+      // Step 1: fetch user profiles
       let query = supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(200)
       if (search) query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`)
-      const { data } = await query
+      const { data: profiles } = await query
+
+      if (cancelled) return
+
+      // Step 2: fetch invite counts — group by referred_by
+      // We pull all rows where referred_by is set, then count per referrer in JS.
+      // For now this is well under any perf threshold; if user count grows
+      // we'd switch to a Postgres RPC function for server-side aggregation.
+      const { data: referrals } = await supabase
+        .from('profiles')
+        .select('referred_by')
+        .not('referred_by', 'is', null)
+
+      if (cancelled) return
+
+      // Build referrer_id → count map
+      const inviteCounts = {}
+      for (const row of referrals || []) {
+        if (row.referred_by) {
+          inviteCounts[row.referred_by] = (inviteCounts[row.referred_by] || 0) + 1
+        }
+      }
+
+      // Attach count to each profile
+      const enriched = (profiles || []).map(p => ({
+        ...p,
+        invite_count: inviteCounts[p.id] || 0,
+      }))
+
       if (!cancelled) {
-        setUsers(data || [])
+        setUsers(enriched)
         setLoading(false)
       }
     }

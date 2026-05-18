@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
+import InviteShareModal from './InviteShareModal'
 
 /* ============================================================
-   UserSearch — search for users by name
+   UserSearch — search for users by name + Suggested for you
    - Signed-out: returns ONLY pro accounts (agent/broker/landlord/management)
    - Signed-in: returns all matching profiles
+   - Signed-in empty state: shows "Suggested for you" (recent users
+     not already connected) + Invite friends CTA
    - Debounced 300ms, click-outside + ESC to close
    ============================================================ */
 
@@ -19,6 +22,13 @@ const SearchIcon = ({ size = 18 }) => (
 const XIcon = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
+
+const ShareIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
   </svg>
 )
 
@@ -71,6 +81,7 @@ function ResultAvatar({ profile, size = 36 }) {
 }
 
 const PRO_ROLES = ['agent', 'broker', 'landlord', 'management']
+const SUGGESTION_LIMIT = 5
 
 export default function UserSearch() {
   const { user } = useAuth()
@@ -78,6 +89,9 @@ export default function UserSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
   const wrapRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -85,31 +99,38 @@ export default function UserSearch() {
   useEffect(() => {
     if (!open) return
     const onClick = (e) => {
+      // Don't close the popover if user clicked inside the invite modal
+      if (showInviteModal) return
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false)
       }
     }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape' && !showInviteModal) setOpen(false) }
     document.addEventListener('mousedown', onClick)
     document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('mousedown', onClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open])
+  }, [open, showInviteModal])
 
-  /* ----- Focus input when opened ----- */
+  /* ----- Focus input when opened, fetch suggestions ----- */
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50)
+      // Fetch suggestions on open (signed-in users only)
+      if (user) {
+        loadSuggestions()
+      }
     } else {
       // Reset query on close so it's fresh next time
       setQuery('')
       setResults([])
     }
-  }, [open])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user])
 
-  /* ----- Debounced search ----- */
+  /* ----- Debounced typed search ----- */
   useEffect(() => {
     const trimmed = query.trim()
     if (trimmed.length < 2) {
@@ -150,20 +171,73 @@ export default function UserSearch() {
     setLoading(false)
   }
 
+  /* ----- Load suggestions: recent users not already connected ----- */
+  async function loadSuggestions() {
+    if (!user) return
+    setLoadingSuggestions(true)
+
+    // Get IDs of users already connected to me (pending or accepted, both directions)
+    const { data: connData, error: connErr } = await supabase
+      .from('connections')
+      .select('requester_id, recipient_id, status')
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .in('status', ['pending', 'accepted'])
+
+    if (connErr) {
+      console.error('[UserSearch] connections query failed:', connErr)
+      setLoadingSuggestions(false)
+      return
+    }
+
+    // Collect excluded user IDs (the other party in each connection + self)
+    const excluded = new Set([user.id])
+    for (const c of connData || []) {
+      if (c.requester_id !== user.id) excluded.add(c.requester_id)
+      if (c.recipient_id !== user.id) excluded.add(c.recipient_id)
+    }
+
+    // Get most recent profiles, then filter excluded in JS.
+    // Simpler than building a complex PostgREST .not().in() filter,
+    // and we only need 5 results from a small recent pool.
+    const { data: profileData, error: profileErr } = await supabase
+      .from('profiles')
+      .select('id, name, photo_url, account_type, city')
+      .neq('id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(30)
+
+    if (profileErr) {
+      console.error('[UserSearch] suggestions query failed:', profileErr)
+      setSuggestions([])
+    } else {
+      // Filter out users already connected; cap at SUGGESTION_LIMIT
+      const filtered = (profileData || [])
+        .filter(p => !excluded.has(p.id))
+        .slice(0, SUGGESTION_LIMIT)
+      setSuggestions(filtered)
+    }
+    setLoadingSuggestions(false)
+  }
+
   function handleResultClick() {
     setOpen(false)
   }
 
+  function handleInviteClick() {
+    setShowInviteModal(true)
+  }
+
   return (
     <div style={styles.wrap} ref={wrapRef}>
-      {/* ===== Toggle button ===== */}
+      {/* ===== Toggle button + label ===== */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{ ...styles.toggleBtn, ...(open ? styles.toggleBtnActive : {}) }}
-        aria-label="Search users"
-        title="Search users"
+        aria-label="Find friends or professionals"
+        title="Find friends or professionals"
       >
-        <SearchIcon />
+        <SearchIcon size={16}/>
+        <span style={styles.toggleLabel}>Find friends or professionals</span>
       </button>
 
       {/* ===== Expanded search panel ===== */}
@@ -188,11 +262,18 @@ export default function UserSearch() {
 
           <div style={styles.resultsArea}>
             {query.trim().length < 2 ? (
-              <div style={styles.hintEmpty}>
-                {user
-                  ? 'Type a name to find agents, brokers, landlords, neighbors, and more.'
-                  : 'Type a name to find agents, brokers, landlords, and property managers.'}
-              </div>
+              /* ----- EMPTY STATE: signed-in shows suggestions, signed-out shows hint ----- */
+              user ? (
+                <SuggestionsSection
+                  suggestions={suggestions}
+                  loading={loadingSuggestions}
+                  onResultClick={handleResultClick}
+                />
+              ) : (
+                <div style={styles.hintEmpty}>
+                  Type a name to find agents, brokers, landlords, and property managers.
+                </div>
+              )
             ) : loading ? (
               <div style={styles.loadingRow}>
                 <div style={styles.spinner}/>
@@ -241,8 +322,70 @@ export default function UserSearch() {
               </div>
             )}
           </div>
+
+          {/* ===== Invite friends CTA (signed-in only) ===== */}
+          {user && (
+            <button onClick={handleInviteClick} style={styles.inviteCta}>
+              <ShareIcon size={14}/>
+              <span>Invite friends to Chathouse</span>
+            </button>
+          )}
         </div>
       )}
+
+      {/* ===== Invite share modal ===== */}
+      {showInviteModal && (
+        <InviteShareModal
+          userId={user?.id}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   SuggestionsSection — shows "Suggested for you" with profile rows
+   ============================================================ */
+function SuggestionsSection({ suggestions, loading, onResultClick }) {
+  if (loading) {
+    return (
+      <div style={styles.loadingRow}>
+        <div style={styles.spinner}/>
+      </div>
+    )
+  }
+
+  if (suggestions.length === 0) {
+    return (
+      <div style={styles.hintEmpty}>
+        Type a name to find agents, brokers, landlords, neighbors, and more.
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={styles.sectionHeader}>Suggested for you</div>
+      <div style={styles.resultsList}>
+        {suggestions.map(p => (
+          <Link
+            key={p.id}
+            to={`/profile/${p.id}`}
+            style={styles.resultRow}
+            onClick={onResultClick}
+          >
+            <ResultAvatar profile={p} size={36}/>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={styles.resultName}>{p.name}</div>
+              <div style={styles.resultMeta}>
+                <RolePill accountType={p.account_type}/>
+                {p.city && <span style={styles.resultCity}>· {p.city}</span>}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   )
 }
@@ -251,16 +394,25 @@ const styles = {
   wrap: { position: 'relative' },
 
   toggleBtn: {
-    width: 36, height: 36,
+    height: 36,
+    padding: '0 12px',
     borderRadius: 8,
     background: '#f1f5f9',
     border: 'none',
     cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     color: '#475569',
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: 'inherit',
     transition: 'background 120ms ease, color 120ms ease',
+    whiteSpace: 'nowrap',
   },
   toggleBtnActive: { background: '#e8f0fe', color: '#1a6cf5' },
+  toggleLabel: {
+    fontSize: 13,
+    fontWeight: 600,
+  },
 
   panel: {
     position: 'absolute',
@@ -307,6 +459,15 @@ const styles = {
   },
 
   resultsArea: { maxHeight: 400, overflowY: 'auto' },
+
+  sectionHeader: {
+    padding: '12px 14px 6px',
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: '#94a3b8',
+  },
 
   hintEmpty: {
     padding: '20px 16px',
@@ -369,5 +530,23 @@ const styles = {
     textDecoration: 'none',
     borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#f1f5f9',
     textAlign: 'center',
+  },
+
+  inviteCta: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    padding: '12px 14px',
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#1a6cf5',
+    background: '#f8fafc',
+    border: 'none',
+    borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#f1f5f9',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'background 100ms ease',
   },
 }

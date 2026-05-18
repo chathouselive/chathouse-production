@@ -86,6 +86,8 @@ export default function SignUp() {
     // profile row after Google returns. Cleared automatically on first use.
     localStorage.setItem('chathouse_pending_account_type', accountType)
     if (!isPro) localStorage.setItem('chathouse_pending_city', city)
+    // Note: chathouse_pending_ref is captured separately in App.jsx on URL load
+    // and read by AuthContext after Google OAuth returns. No action needed here.
     const { error } = await signInWithGoogle()
     if (error) {
       setError(error.message)
@@ -137,6 +139,16 @@ export default function SignUp() {
       const userId = data?.user?.id
       if (userId) {
         const updates = {}
+
+        // Capture referral attribution. Read & clear localStorage immediately so a
+        // failed signup doesn't leak the ref into someone else's session.
+        const pendingRef = localStorage.getItem('chathouse_pending_ref')
+        localStorage.removeItem('chathouse_pending_ref')
+        // Safety: users can't refer themselves
+        if (pendingRef && pendingRef !== userId) {
+          updates.referred_by = pendingRef
+        }
+
         if (isPro) {
           updates.states_served = statesServed
           updates.brokerage_name = brokerageName

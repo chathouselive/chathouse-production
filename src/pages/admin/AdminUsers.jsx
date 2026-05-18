@@ -29,6 +29,7 @@ export default function AdminUsers() {
             <div>Email</div>
             <div>Type</div>
             <div>City</div>
+            <div>Invites</div>
             <div>Joined</div>
           </div>
           {users.map(u => (
@@ -47,6 +48,13 @@ export default function AdminUsers() {
                 </span>
               </div>
               <div style={{ ...styles.td, color: '#64748b', fontSize: 12 }}>{u.city || '—'}</div>
+              <div style={styles.td}>
+                {u.invite_count > 0 ? (
+                  <span style={styles.inviteBadge}>{u.invite_count}</span>
+                ) : (
+                  <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>
+                )}
+              </div>
               <div style={{ ...styles.td, color: '#94a3b8', fontSize: 12 }}>{new Date(u.created_at).toLocaleDateString()}</div>
             </div>
           ))}
@@ -81,7 +89,7 @@ const styles = {
   table: { background: '#fff', borderRadius: 12, border: '1.5px solid #e2e8f0', overflow: 'hidden' },
   thead: {
     display: 'grid',
-    gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+    gridTemplateColumns: '2fr 2fr 1fr 1fr 0.7fr 1fr',
     padding: '10px 14px',
     fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.3,
     borderBottom: '1px solid #e2e8f0',
@@ -89,7 +97,7 @@ const styles = {
   },
   tr: {
     display: 'grid',
-    gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+    gridTemplateColumns: '2fr 2fr 1fr 1fr 0.7fr 1fr',
     padding: '12px 14px',
     borderBottom: '1px solid #f1f5f9',
     alignItems: 'center',
@@ -104,5 +112,15 @@ const styles = {
   },
   adminTag: { fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#0f172a', color: '#fff', marginLeft: 6, letterSpacing: 0.5 },
   typeTag: { padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'capitalize' },
+  inviteBadge: {
+    padding: '3px 9px',
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 700,
+    background: '#dcfce7',
+    color: '#15803d',
+    minWidth: 22,
+    textAlign: 'center',
+  },
   center: { padding: 40, textAlign: 'center', color: '#64748b' },
 }
