@@ -11,6 +11,7 @@ build/
 .env.*.local
 .env.development.local
 .env.production.local
+.env.scripts
 
 # Logs
 *.log
@@ -48,3 +49,9 @@ geocode_test_result.json
 photo_sync_result.json
 sync_test_result.json
 gallery_test.json
+
+# NCES school data — large, downloadable separately
+data/nces/
+
+# Local script output — never commit
+logs/

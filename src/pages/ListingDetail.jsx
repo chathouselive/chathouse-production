@@ -8,6 +8,7 @@ import PhotoGalleryModal from '../components/PhotoGalleryModal'
 import Footer from '../components/Footer'
 import WalkabilityScores from '../components/WalkabilityScores'
 import RiskReportSection from '../components/RiskReportSection'
+import SchoolsSection from '../components/SchoolsSection'
 import { useListing, useListingPhotos } from '../lib/useListings'
 import { useComments } from '../lib/useComments'
 import { useVerification } from '../lib/useVerification'
@@ -424,6 +425,9 @@ export default function ListingDetail() {
 
         {/* AI Risk Report */}
         <RiskReportSection listing={listing} />
+
+        {/* Nearby Schools (v1: nearby-only; assigned coming after njmls-sync v5) */}
+        <SchoolsSection listingId={listing.id} />
 
         {/* Fair Housing strip */}
         <div style={styles.fairHousingStrip}>
