@@ -1,11 +1,27 @@
 // =============================================================================
-// njmls-sync Edge Function — v4 (adds geocoding fallback)
+// njmls-sync Edge Function — v5 (compliance + Path A schools + NJ geocoding)
 // -----------------------------------------------------------------------------
-// What this version adds over v3:
-//   - Geocoding fallback via Google Geocoding API when NJMLS returns null
-//     Latitude/Longitude. Address is built from UnparsedAddress + City + State
-//     + PostalCode. Result is stored in listings.lat/lng.
-//   - Geocoding stats surfaced in response (attempted/succeeded/failed)
+// What this version adds over v4:
+//   - Promotes ListOfficeName / ListAgentFullName from idx_raw to top-level
+//     columns (idx_list_office_name / idx_list_agent_full_name) for NJMLS
+//     IDX 13.1(d) brokerage attribution compliance
+//   - Adds 6 school fields to PROPERTY_FIELDS: ElementarySchool(+Text),
+//     MiddleOrJuniorSchool(+Text), HighSchool(+Text); writes to
+//     idx_elementary_school, idx_middle_school, idx_high_school columns
+//   - Adds &components=country:US|administrative_area:NJ to geocoding
+//     fallback URL — prevents addresses like "411 Park 2J, Fort Lee"
+//     from defaulting to Manhattan (40.76,-73.97) when Google can't
+//     resolve them precisely. Bias to NJ; returns ZERO_RESULTS rather
+//     than wrong result for unresolvable addresses (null > wrong).
+//
+// Prerequisite migration (run BEFORE deploying this function):
+//   ALTER TABLE listings
+//     ADD COLUMN idx_list_office_name TEXT,
+//     ADD COLUMN idx_list_agent_full_name TEXT,
+//     ADD COLUMN idx_elementary_school TEXT,
+//     ADD COLUMN idx_middle_school TEXT,
+//     ADD COLUMN idx_high_school TEXT;
+//   (Brokerage backfilled separately from existing idx_raw at migration time)
 //
 // What this version still does NOT do:
 //   - Photo / Media endpoint or downloads
@@ -16,9 +32,9 @@
 // Required env vars:
 //   - NJMLS_USERNAME, NJMLS_PASSWORD
 //   - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-injected)
-//   - GOOGLE_GEOCODING_API_KEY (new in v4)
+//   - GOOGLE_GEOCODING_API_KEY
 //
-// Sync flow:
+// Sync flow (unchanged from v4):
 //   1. Read last_modification_timestamp from idx_sync_state
 //   2. Auth to NJMLS
 //   3. Loop:
@@ -95,9 +111,16 @@ const PROPERTY_FIELDS = [
   "ListPrice",
   // Description
   "PublicRemarks",
-  // Listing broker (for attribution)
+  // Listing broker (for attribution — promoted to top-level cols in v5)
   "ListAgentFullName",
   "ListOfficeName",
+  // Schools — Path A assigned schools (added in v5)
+  "ElementarySchool",
+  "ElementarySchoolText",
+  "MiddleOrJuniorSchool",
+  "MiddleOrJuniorSchoolText",
+  "HighSchool",
+  "HighSchoolText",
   // The four mandatory IDX opt-out flags
   "InternetEntireListingDisplayYN",
   "InternetAddressDisplayYN",
@@ -134,7 +157,7 @@ serve(async (req) => {
   }
 
   try {
-    logStep("njmls-sync v4 invoked");
+    logStep("njmls-sync v5 invoked");
 
     // -------------------------------------------------------------------------
     // 1. Verify env vars
@@ -489,6 +512,16 @@ async function mapResoToListing(
     idx_address_display: reso.InternetAddressDisplayYN ?? false,
     idx_avm_display: reso.InternetAutomatedValuationDisplayYN ?? false,
     idx_consumer_comments: reso.InternetConsumerCommentYN ?? false,
+    // Brokerage attribution (NJMLS 13.1(d) compliance) — promoted from idx_raw
+    // to top-level columns in v5 so frontend can render without parsing JSONB.
+    idx_list_office_name: reso.ListOfficeName ?? null,
+    idx_list_agent_full_name: reso.ListAgentFullName ?? null,
+    // Schools — Path A assigned schools. Try structured field first, fall
+    // back to text variant. NJMLS may provide either or both. Null when
+    // neither exists (rural areas, non-residential, or missing data).
+    idx_elementary_school: reso.ElementarySchool ?? reso.ElementarySchoolText ?? null,
+    idx_middle_school: reso.MiddleOrJuniorSchool ?? reso.MiddleOrJuniorSchoolText ?? null,
+    idx_high_school: reso.HighSchool ?? reso.HighSchoolText ?? null,
     is_active: true,
     updated_at: new Date().toISOString(),
   };
@@ -510,9 +543,16 @@ async function geocodeAddress(
   if (parts.length === 0) return null;
 
   const fullAddress = parts.join(", ");
+
+  // NJ component bias (added v5): constrains geocoding to NJ addresses,
+  // preventing the Manhattan-default fallback for ambiguous unit addresses
+  // like "411 Park 2J" which previously resolved to 40.76,-73.97 (Times Sq).
+  // Google returns ZERO_RESULTS for unresolvable addresses with this filter
+  // applied — null is better than wrong.
   const url =
     `https://maps.googleapis.com/maps/api/geocode/json` +
     `?address=${encodeURIComponent(fullAddress)}` +
+    `&components=country:US|administrative_area:NJ` +
     `&key=${GOOGLE_GEOCODING_API_KEY}`;
 
   try {

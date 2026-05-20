@@ -91,6 +91,14 @@ export default function ListingCard({ listing }) {
 
   const commentCount = listing.comment_count || 0
 
+  /* IDX disclosure data — Section 13.1(d). MLS# + listing firm appear in
+     the footer alongside the comment count. The thumbnail exemption in
+     13.1(d) allows compact identification on summary results when linked
+     to a full-disclosure detail page (which our cards always are).
+     Full agent + brokerage + agreement text live on the detail page. */
+  const showMls = isIDX && listing.idx_listing_id
+  const showBrokerage = isIDX && listing.idx_list_office_name
+
   return (
     <Link to={`/listing/${listing.id}`} style={styles.link}>
       <div style={styles.card}>
@@ -133,6 +141,19 @@ export default function ListingCard({ listing }) {
               ARCHIVED
             </div>
           )}
+          {/* NJMLS IDX logo overlay — bottom-right of image.
+              Required per Section 13.1 Rule 1: "Listings belonging to brokers
+              other than the Participant must appear with the NJMLS' Internet
+              Data Exchange logo on each result page."
+              Only renders for IDX-sourced listings. Community listings don't
+              need this attribution. */}
+          {isIDX && (
+            <img
+              src="/brokers/njmls-idx-logo.png"
+              alt="NJMLS Internet Data Exchange"
+              style={styles.idxLogoOverlay}
+            />
+          )}
         </div>
         <div style={styles.body}>
           <div style={styles.price}>{priceStr}</div>
@@ -145,14 +166,29 @@ export default function ListingCard({ listing }) {
             {listing.baths != null && <span>· {listing.baths} ba</span>}
             {listing.sqft != null && <span>· {Number(listing.sqft).toLocaleString()} sqft</span>}
           </div>
+          {/* Footer row — comment count + IDX disclosure on left, heart on right.
+              All left-side items separated by · dots. Brokerage name truncates
+              with ellipsis when too long to fit. */}
           <div style={styles.footer}>
-            {commentsAllowed ? (
-              <span style={styles.footerStat}>
-                <Icon.Message/> {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
-              </span>
-            ) : (
-              <span/>
-            )}
+            <div style={styles.footerLeft}>
+              {commentsAllowed && (
+                <span style={styles.footerStat}>
+                  <Icon.Message/> {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                </span>
+              )}
+              {showMls && (
+                <>
+                  {commentsAllowed && <span style={styles.footerDot}>·</span>}
+                  <span style={styles.footerMeta}>MLS #{listing.idx_listing_id}</span>
+                </>
+              )}
+              {showBrokerage && (
+                <>
+                  <span style={styles.footerDot}>·</span>
+                  <span style={styles.footerBrokerage}>{listing.idx_list_office_name}</span>
+                </>
+              )}
+            </div>
             <button
               onClick={handleLike}
               style={{ ...styles.likeBtn, color: liked ? '#ef4444' : '#94a3b8' }}
@@ -208,6 +244,17 @@ const styles = {
     letterSpacing: 1,
     boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
   },
+  /* NJMLS IDX logo overlay — bottom-right of image. Sits directly on the
+     photo with a subtle drop shadow tracing the logo letterforms so it
+     stays readable against any photo background. No background pill —
+     matches the Zillow IDX pattern for cleaner visual integration. */
+  idxLogoOverlay: {
+    position: 'absolute', bottom: 12, right: 12,
+    height: 32,
+    width: 'auto',
+    filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))',
+    display: 'block',
+  },
   body: { padding: 16 },
   price: { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 2 },
   address: { fontSize: 14, color: '#334155', marginBottom: 6 },
@@ -215,14 +262,35 @@ const styles = {
   specs: { fontSize: 12, color: '#64748b', display: 'flex', gap: 6, marginBottom: 10 },
   footer: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    gap: 8,
     paddingTop: 10,
     borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#f1f5f9',
   },
-  footerStat: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#94a3b8', fontWeight: 600 },
+  /* Footer left column — comment count, MLS#, brokerage, all on one line
+     separated by · dots. flex:1 + minWidth:0 lets the brokerage span
+     truncate properly instead of pushing the heart off the card. */
+  footerLeft: {
+    flex: 1, minWidth: 0,
+    display: 'flex', alignItems: 'center', gap: 4,
+    fontSize: 12, color: '#94a3b8', fontWeight: 600,
+    overflow: 'hidden',
+  },
+  footerStat: { display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 },
+  footerDot: { flexShrink: 0, opacity: 0.7 },
+  footerMeta: { flexShrink: 0, whiteSpace: 'nowrap' },
+  /* Brokerage truncates with ellipsis on long names like
+     "PROMINENT PROPERTIES SOTHEBY'S INTERNATIONAL REALTY-TENAFLY". */
+  footerBrokerage: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    minWidth: 0,
+  },
   likeBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 12, fontWeight: 600, padding: 0,
     display: 'inline-flex', alignItems: 'center', gap: 4,
+    flexShrink: 0,
     transition: 'color 120ms ease',
   },
 }

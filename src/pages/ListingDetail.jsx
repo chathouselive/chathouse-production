@@ -278,7 +278,13 @@ export default function ListingDetail() {
               <Icon.Building size={11}/> Community Listed
             </div>
           )}
-          {isIDX && <div style={styles.idxBadge}>IDX</div>}
+          {isIDX && (
+            <img
+              src="/brokers/njmls-idx-logo.png"
+              alt="NJMLS Internet Data Exchange"
+              style={styles.idxBadge}
+            />
+          )}
 
           {/* Gallery button — bottom-right of hero, only when 2+ photos */}
           {hasGallery && (
@@ -393,20 +399,22 @@ export default function ListingDetail() {
           {isIDX && (
             <div style={styles.idxCompliance}>
               <div style={styles.idxComplianceTop}>
-                <div style={styles.idxLogoBox}>
-                  <span style={styles.idxLogoText}>IDX</span>
-                </div>
+                <img
+                  src="/brokers/njmls-idx-logo.png"
+                  alt="NJMLS Internet Data Exchange"
+                  style={styles.idxLogo}
+                />
                 <div style={styles.fairHousingBox}>
                   <Icon.Scales size={13}/>
                   <span style={styles.fairHousingText}>Equal Housing Opportunity</span>
                 </div>
               </div>
-              {listing.listing_office && (
+              {listing.idx_list_office_name && (
                 <div style={styles.listingOffice}>
                   <span style={styles.listingOfficeLabel}>Listing provided by: </span>
-                  <span style={styles.listingOfficeName}>{listing.listing_office}</span>
-                  {listing.listing_agent && (
-                    <span style={styles.listingAgentName}> · {listing.listing_agent}</span>
+                  <span style={styles.listingOfficeName}>{listing.idx_list_office_name}</span>
+                  {listing.idx_list_agent_full_name && (
+                    <span style={styles.listingAgentName}> · {listing.idx_list_agent_full_name}</span>
                   )}
                 </div>
               )}
@@ -551,12 +559,15 @@ const styles = {
     borderRadius: 100, fontSize: 11, fontWeight: 700,
     letterSpacing: 0.3, textTransform: 'uppercase',
   },
+  /* NJMLS IDX logo overlay — top-left of hero image. Real authorized
+     mark from NJMLS, replacing the prior blue "IDX" text pill. Drop
+     shadow keeps it readable against any photo background. */
   idxBadge: {
     position: 'absolute', top: 16, left: 16,
-    padding: '5px 12px',
-    background: 'rgba(26,108,245,0.9)',
-    borderRadius: 100, color: '#fff',
-    fontSize: 11, fontWeight: 700, letterSpacing: 1,
+    height: 40,
+    width: 'auto',
+    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+    display: 'block',
   },
 
   /* Gallery button — bottom-right of hero */
@@ -691,11 +702,16 @@ const styles = {
     borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
   },
   idxComplianceTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' },
-  idxLogoBox: { background: '#1a6cf5', borderRadius: 6, padding: '3px 10px' },
-  idxLogoText: { color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: 1 },
+  /* NJMLS IDX logo — real authorized mark from NJMLS. 22px height fits
+     the disclosure block visually alongside the Fair Housing box. */
+  idxLogo: {
+    height: 22,
+    width: 'auto',
+    display: 'block',
+  },
   fairHousingBox: { display: 'flex', alignItems: 'center', gap: 5, color: '#475569' },
   fairHousingText: { fontSize: 11, fontWeight: 700, color: '#475569' },
-  listingOffice: { fontSize: 12, color: '#475569', marginBottom: 8 },
+  listingOffice: { fontSize: 16, color: '#475569', marginBottom: 8 },
   listingOfficeLabel: { color: '#94a3b8' },
   listingOfficeName: { fontWeight: 700, color: '#334155' },
   listingAgentName: { color: '#334155' },

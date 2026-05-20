@@ -116,7 +116,7 @@ export default function Footer() {
             </p>
 
             <p style={styles.brokerIDX}>
-              Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. Chathouse is the technology platform that displays this data; eXp Realty, LLC is the brokerage of record. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
+              Real estate listing data displayed on Chathouse is provided through the NJMLS Internet Data Exchange (IDX) program. Information deemed reliable but not guaranteed. Some properties listed with participating firms do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. Chathouse is the technology platform that displays this data; eXp Realty, LLC is the brokerage of record. © {year} New Jersey Multiple Listing Service, Inc. All rights reserved.
             </p>
           </div>
         )}
