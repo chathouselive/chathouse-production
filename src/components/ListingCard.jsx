@@ -272,7 +272,7 @@ const styles = {
   footerLeft: {
     flex: 1, minWidth: 0,
     display: 'flex', alignItems: 'center', gap: 4,
-    fontSize: 12, color: '#94a3b8', fontWeight: 600,
+    fontSize: 14, color: '#94a3b8', fontWeight: 600,
     overflow: 'hidden',
   },
   footerStat: { display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 },
