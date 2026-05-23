@@ -10,6 +10,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
                  Already filtered for compliance (caller is responsible)
      onClose   — function called when user closes the modal
      startIndex — optional initial photo index (default 0)
+     isIDX     — whether this listing is NJMLS IDX-sourced. When true,
+                 the NJMLS Internet Data Exchange trademark is overlaid
+                 bottom-left on each displayed photo per NJMLS Section 13.1
+                 ("blue trademark in the bottom left corner of all images").
+                 Defaults false so community photos never carry the mark.
 
    Behavior:
      - Click backdrop or X button → close
@@ -22,7 +27,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
    Matches Chathouse's boxed modal aesthetic (rounded corners,
    white background, soft shadow) rather than full-screen black.
    ============================================================ */
-export default function PhotoGalleryModal({ photos, onClose, startIndex = 0 }) {
+export default function PhotoGalleryModal({ photos, onClose, startIndex = 0, isIDX = false }) {
   const [index, setIndex] = useState(
     Math.min(Math.max(0, startIndex), Math.max(0, photos.length - 1))
   )
@@ -119,6 +124,20 @@ export default function PhotoGalleryModal({ photos, onClose, startIndex = 0 }) {
             style={styles.photo}
           />
 
+          {/* NJMLS IDX trademark — bottom-left of every displayed photo,
+              required by NJMLS Section 13.1 ("blue trademark in the bottom
+              left corner of all images"). Only for IDX-sourced listings;
+              community photos never carry the mark. A light pill backing
+              keeps the logo readable against the dark letterbox areas that
+              appear around portrait/landscape photos in this modal. */}
+          {isIDX && (
+            <img
+              src="/brokers/njmls-idx-logo.png"
+              alt="NJMLS Internet Data Exchange"
+              style={styles.idxTrademark}
+            />
+          )}
+
           {photos.length > 1 && (
             <button onClick={goNext} style={{ ...styles.navBtn, ...styles.navBtnRight }} aria-label="Next photo">
               <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -202,6 +221,18 @@ const styles = {
     objectFit: 'contain',
     display: 'block',
   },
+  /* NJMLS IDX trademark overlay — bottom-left of the photo area. Light
+     pill backing ensures the mark stays readable over the dark letterbox
+     bars. Nav arrows are vertically centered (mid-left/mid-right) so a
+     bottom-left mark does not collide with them at modal heights. */
+  idxTrademark: {
+  position: 'absolute', bottom: 16, left: 16,
+  height: 32,
+  width: 'auto',
+  filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))',
+  display: 'block',
+  zIndex: 2,
+},
   navBtn: {
     position: 'absolute', top: '50%',
     transform: 'translateY(-50%)',
@@ -212,6 +243,7 @@ const styles = {
     color: '#0f172a', cursor: 'pointer',
     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
     transition: 'background 120ms ease, transform 120ms ease',
+    zIndex: 3,
   },
   navBtnLeft: { left: 16 },
   navBtnRight: { right: 16 },

@@ -418,6 +418,32 @@ export default function ListingDetail() {
                   )}
                 </div>
               )}
+              {/* Listing contact — NJMLS 13.1(d) requires email/phone of the
+                  listing participant. Prefer agent phone (most specific); fall
+                  back to office phone, which the NJMLS feed populates on every
+                  listing. Append agent email when present. Office email is
+                  never provided by the feed, so it is intentionally omitted. */}
+              {(listing.idx_list_agent_phone || listing.idx_list_agent_email || listing.idx_list_office_phone) && (
+                <div style={styles.listingContact}>
+                  {listing.idx_list_agent_phone ? (
+                    <a href={`tel:${listing.idx_list_agent_phone.replace(/[^0-9+]/g, '')}`} style={styles.listingContactLink}>
+                      {listing.idx_list_agent_phone}
+                    </a>
+                  ) : listing.idx_list_office_phone ? (
+                    <a href={`tel:${listing.idx_list_office_phone.replace(/[^0-9+]/g, '')}`} style={styles.listingContactLink}>
+                      {listing.idx_list_office_phone}
+                    </a>
+                  ) : null}
+                  {listing.idx_list_agent_email && (
+                    <>
+                      {(listing.idx_list_agent_phone || listing.idx_list_office_phone) && <span style={styles.listingContactDot}> · </span>}
+                      <a href={`mailto:${listing.idx_list_agent_email}`} style={styles.listingContactLink}>
+                        {listing.idx_list_agent_email}
+                      </a>
+                    </>
+                  )}
+                </div>
+              )}
               <p style={styles.idxDisclaimer}>
                 The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. All information deemed reliable but not guaranteed. Source: New Jersey Multiple Listing Service, Inc. © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
               </p>
@@ -527,6 +553,7 @@ export default function ListingDetail() {
         <PhotoGalleryModal
           photos={photos}
           onClose={() => setShowGallery(false)}
+          isIDX={isIDX}
         />
       )}
     </div>
@@ -715,6 +742,9 @@ const styles = {
   listingOfficeLabel: { color: '#94a3b8' },
   listingOfficeName: { fontWeight: 700, color: '#334155' },
   listingAgentName: { color: '#334155' },
+  listingContact: { fontSize: 14, color: '#475569', marginBottom: 8 },
+  listingContactLink: { color: '#1a6cf5', textDecoration: 'none', fontWeight: 600 },
+  listingContactDot: { color: '#94a3b8' },
   idxDisclaimer: { fontSize: 11, color: '#94a3b8', lineHeight: 1.65, margin: '8px 0 4px' },
   idxUpdated: { fontSize: 11, color: '#94a3b8', margin: 0 },
 
