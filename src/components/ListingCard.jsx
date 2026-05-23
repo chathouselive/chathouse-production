@@ -134,14 +134,15 @@ export default function ListingCard({ listing }) {
           {/* ARCHIVED badge — admins only. Renders for any archived listing
               (RLS allows admins to see archived rows alongside active ones).
               Visual cue prevents admin confusion about what's live vs not.
-              Bottom-left avoids fighting with Community (top-left) and
-              type tag (top-right). */}
+              Top-left position keeps it clear of the NJMLS logo (bottom-left)
+              and the type tag (top-right). Community + IDX are mutually
+              exclusive, so no conflict with the community badge. */}
           {isAdmin && isArchived && (
             <div style={styles.archivedBadge}>
               ARCHIVED
             </div>
           )}
-          {/* NJMLS IDX logo overlay — bottom-right of image.
+          {/* NJMLS IDX logo overlay — bottom-LEFT of image (per NJMLS request).
               Required per Section 13.1 Rule 1: "Listings belonging to brokers
               other than the Participant must appear with the NJMLS' Internet
               Data Exchange logo on each result page."
@@ -232,10 +233,11 @@ const styles = {
     borderRadius: 100, fontSize: 10, fontWeight: 700,
     letterSpacing: 0.3, textTransform: 'uppercase',
   },
-  /* ARCHIVED badge — bottom-left of image, amber to match admin Archive
-     theme. Only renders for admins on archived listings. */
+  /* ARCHIVED badge — top-left of image, amber. Admin-only, archived only.
+     Moved from bottom-left to top-left so it doesn't collide with the
+     NJMLS IDX logo now living bottom-left. */
   archivedBadge: {
-    position: 'absolute', bottom: 12, left: 12,
+    position: 'absolute', top: 12, left: 12,
     padding: '4px 10px',
     background: '#d97706',
     color: '#fff',
@@ -244,12 +246,11 @@ const styles = {
     letterSpacing: 1,
     boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
   },
-  /* NJMLS IDX logo overlay — bottom-right of image. Sits directly on the
-     photo with a subtle drop shadow tracing the logo letterforms so it
-     stays readable against any photo background. No background pill —
-     matches the Zillow IDX pattern for cleaner visual integration. */
+  /* NJMLS IDX logo overlay — bottom-LEFT of image (per NJMLS request).
+     Sits directly on the photo with a subtle drop shadow tracing the logo
+     letterforms so it stays readable against any photo background. */
   idxLogoOverlay: {
-    position: 'absolute', bottom: 12, right: 12,
+    position: 'absolute', bottom: 12, left: 12,
     height: 32,
     width: 'auto',
     filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))',
@@ -268,7 +269,8 @@ const styles = {
   },
   /* Footer left column — comment count, MLS#, brokerage, all on one line
      separated by · dots. flex:1 + minWidth:0 lets the brokerage span
-     truncate properly instead of pushing the heart off the card. */
+     truncate properly instead of pushing the heart off the card.
+     fontSize 14 meets the 13.1(d) median-typeface requirement. */
   footerLeft: {
     flex: 1, minWidth: 0,
     display: 'flex', alignItems: 'center', gap: 4,

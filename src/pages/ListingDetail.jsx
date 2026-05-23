@@ -419,7 +419,7 @@ export default function ListingDetail() {
                 </div>
               )}
               <p style={styles.idxDisclaimer}>
-                The data relating to real estate for sale on this website comes in part from the Internet Data Exchange (IDX) program of the New Jersey Multiple Listing Service (NJMLS). Real estate listings held by brokerage firms other than Chathouse are marked with the IDX logo and detailed information about them includes the name of the listing broker. Information is deemed reliable but is not guaranteed accurate by NJMLS or Chathouse. All information should be independently verified. © {new Date().getFullYear()} New Jersey Multiple Listing Service. All rights reserved.
+                The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. All information deemed reliable but not guaranteed. Source: New Jersey Multiple Listing Service, Inc. © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
               </p>
               <p style={styles.idxUpdated}>
                 Last updated: {listing.updated_at ? new Date(listing.updated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
@@ -563,7 +563,7 @@ const styles = {
      mark from NJMLS, replacing the prior blue "IDX" text pill. Drop
      shadow keeps it readable against any photo background. */
   idxBadge: {
-    position: 'absolute', top: 16, left: 16,
+    position: 'absolute', bottom: 16, left: 16,
     height: 40,
     width: 'auto',
     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',

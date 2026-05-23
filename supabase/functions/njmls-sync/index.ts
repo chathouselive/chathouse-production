@@ -1,7 +1,29 @@
 // =============================================================================
-// njmls-sync Edge Function — v5 (compliance + Path A schools + NJ geocoding)
+// njmls-sync Edge Function — v6 (contact-info attribution)
 // -----------------------------------------------------------------------------
-// What this version adds over v4:
+// What this version adds over v5:
+//   - Adds 4 listing-contact fields to PROPERTY_FIELDS and promotes them to
+//     top-level columns for NJMLS IDX 13.1(d) compliance (firm + agent +
+//     email/phone of the listing participant must be displayed):
+//       ListAgentEmail            -> idx_list_agent_email
+//       ListAgentPreferredPhone   -> idx_list_agent_phone
+//       ListOfficePhone           -> idx_list_office_phone
+//       ListOfficeEmail           -> idx_list_office_email
+//     (NJMLS feed confirmed to populate all four — probed 5/22.)
+//   - Bumps invocation log string to v6 so the deploy log proves the new
+//     code is live (v5 had a silent no-push deploy once; the version string
+//     in the log is the canary that catches it).
+//
+// Prerequisite migration (run BEFORE deploying this function):
+//   ALTER TABLE listings
+//     ADD COLUMN IF NOT EXISTS idx_list_agent_email TEXT,
+//     ADD COLUMN IF NOT EXISTS idx_list_agent_phone TEXT,
+//     ADD COLUMN IF NOT EXISTS idx_list_office_phone TEXT,
+//     ADD COLUMN IF NOT EXISTS idx_list_office_email TEXT;
+//
+// -----------------------------------------------------------------------------
+// (v5 history retained below)
+// What v5 added over v4:
 //   - Promotes ListOfficeName / ListAgentFullName from idx_raw to top-level
 //     columns (idx_list_office_name / idx_list_agent_full_name) for NJMLS
 //     IDX 13.1(d) brokerage attribution compliance
@@ -13,15 +35,6 @@
 //     from defaulting to Manhattan (40.76,-73.97) when Google can't
 //     resolve them precisely. Bias to NJ; returns ZERO_RESULTS rather
 //     than wrong result for unresolvable addresses (null > wrong).
-//
-// Prerequisite migration (run BEFORE deploying this function):
-//   ALTER TABLE listings
-//     ADD COLUMN idx_list_office_name TEXT,
-//     ADD COLUMN idx_list_agent_full_name TEXT,
-//     ADD COLUMN idx_elementary_school TEXT,
-//     ADD COLUMN idx_middle_school TEXT,
-//     ADD COLUMN idx_high_school TEXT;
-//   (Brokerage backfilled separately from existing idx_raw at migration time)
 //
 // What this version still does NOT do:
 //   - Photo / Media endpoint or downloads
@@ -114,6 +127,11 @@ const PROPERTY_FIELDS = [
   // Listing broker (for attribution — promoted to top-level cols in v5)
   "ListAgentFullName",
   "ListOfficeName",
+  // Listing contact (NJMLS 13.1(d) — email/phone of listing participant, added v6)
+  "ListAgentEmail",
+  "ListAgentPreferredPhone",
+  "ListOfficePhone",
+  "ListOfficeEmail",
   // Schools — Path A assigned schools (added in v5)
   "ElementarySchool",
   "ElementarySchoolText",
@@ -157,7 +175,7 @@ serve(async (req) => {
   }
 
   try {
-    logStep("njmls-sync v5 invoked");
+    logStep("njmls-sync v6 invoked");
 
     // -------------------------------------------------------------------------
     // 1. Verify env vars
@@ -516,6 +534,11 @@ async function mapResoToListing(
     // to top-level columns in v5 so frontend can render without parsing JSONB.
     idx_list_office_name: reso.ListOfficeName ?? null,
     idx_list_agent_full_name: reso.ListAgentFullName ?? null,
+    // Listing contact (NJMLS 13.1(d) — email/phone of listing participant, added v6)
+    idx_list_agent_email: reso.ListAgentEmail ?? null,
+    idx_list_agent_phone: reso.ListAgentPreferredPhone ?? null,
+    idx_list_office_phone: reso.ListOfficePhone ?? null,
+    idx_list_office_email: reso.ListOfficeEmail ?? null,
     // Schools — Path A assigned schools. Try structured field first, fall
     // back to text variant. NJMLS may provide either or both. Null when
     // neither exists (rural areas, non-residential, or missing data).
