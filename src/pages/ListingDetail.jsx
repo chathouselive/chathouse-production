@@ -409,6 +409,19 @@ export default function ListingDetail() {
                   <span style={styles.fairHousingText}>Equal Housing Opportunity</span>
                 </div>
               </div>
+              {/* Brokerage of Record — eXp Realty is the NJMLS participating
+                  broker for this IDX feed. Displayed here (with the listing,
+                  not just the page footer) so the broker of record is
+                  identified directly alongside the listing detail. Distinct
+                  from the per-listing brokerage shown below. */}
+              <div style={styles.brokerOfRecord}>
+                <span style={styles.brokerOfRecordLabel}>Brokerage of Record</span>
+                <img
+                  src="/brokers/exp-logo.png"
+                  alt="eXp Realty, LLC — Brokerage of Record"
+                  style={styles.brokerOfRecordLogo}
+                />
+              </div>
               {listing.idx_list_office_name && (
                 <div style={styles.listingOffice}>
                   <span style={styles.listingOfficeLabel}>Listing provided by: </span>
@@ -586,9 +599,8 @@ const styles = {
     borderRadius: 100, fontSize: 11, fontWeight: 700,
     letterSpacing: 0.3, textTransform: 'uppercase',
   },
-  /* NJMLS IDX logo overlay — top-left of hero image. Real authorized
-     mark from NJMLS, replacing the prior blue "IDX" text pill. Drop
-     shadow keeps it readable against any photo background. */
+  /* NJMLS IDX logo overlay — bottom-left of hero image. Real authorized
+     mark from NJMLS. Drop shadow keeps it readable against any photo. */
   idxBadge: {
     position: 'absolute', bottom: 16, left: 16,
     height: 40,
@@ -729,6 +741,25 @@ const styles = {
     borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
   },
   idxComplianceTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' },
+  /* Brokerage of Record — participating broker (eXp) identifier, shown
+     inside the IDX compliance block alongside the listing. The bottom
+     border separates it from the per-listing "Listing provided by" line
+     so the two brokerages don't read as one. */
+  brokerOfRecord: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    paddingBottom: 10, marginBottom: 10,
+    borderBottom: '1px solid #e2e8f0',
+  },
+  brokerOfRecordLabel: {
+    fontSize: 10, fontWeight: 700,
+    letterSpacing: 0.6, textTransform: 'uppercase',
+    color: '#94a3b8',
+  },
+  brokerOfRecordLogo: {
+    height: 30,
+    width: 'auto',
+    display: 'block',
+  },
   /* NJMLS IDX logo — real authorized mark from NJMLS. 22px height fits
      the disclosure block visually alongside the Fair Housing box. */
   idxLogo: {
