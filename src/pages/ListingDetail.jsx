@@ -101,6 +101,19 @@ const Icon = {
       <circle cx="12" cy="13" r="4"/>
     </svg>
   ),
+  /* Phone — for contact agent call button */
+  Phone: ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  ),
+  /* Mail — for contact agent email button */
+  Mail: ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>
+  ),
 }
 
 export default function ListingDetail() {
@@ -332,6 +345,72 @@ export default function ListingDetail() {
             </button>
           </div>
 
+          {/* Contact Agent card — NJMLS Section 13.1(d) attribution moved UP
+              out of the compliance/disclaimer block per reviewer feedback
+              ("attribution should not be in the body of the disclaimer but
+              moved up so it is prominently displayed and not hidden from
+              sight"). Falls back to the listing brokerage + office phone
+              when the agent's own contact info isn't in the feed, so we
+              always show a way to reach someone. IDX-only; community
+              listings have no listing agent. */}
+          {isIDX && (() => {
+            const agentPhone = listing.idx_list_agent_phone
+            const agentEmail = listing.idx_list_agent_email
+            const officePhone = listing.idx_list_office_phone
+            const agentName = listing.idx_list_agent_full_name
+            const officeName = listing.idx_list_office_name
+
+            // Decide displayed phone: agent > office. No phone means no phone button.
+            const displayedPhone = agentPhone || officePhone
+            // Email has no fallback — office email isn't in the NJMLS feed.
+            const displayedEmail = agentEmail
+            // Don't render the card if there is genuinely no way to contact anyone.
+            if (!displayedPhone && !displayedEmail) return null
+
+            // When agent contact is missing entirely, fall back to showing
+            // the brokerage's identity rather than the agent's — clearer than
+            // showing an agent's name attached to an office line.
+            const hasAnyAgentContact = agentPhone || agentEmail
+            const displayedName = hasAnyAgentContact ? (agentName || officeName) : (officeName || agentName)
+            const displayedSubname = hasAnyAgentContact ? officeName : null
+
+            return (
+              <div style={styles.contactCard}>
+                <div style={styles.contactCardLeft}>
+                  <div style={styles.contactCardLabel}>Contact Agent</div>
+                  {displayedName && (
+                    <div style={styles.contactCardName}>{displayedName}</div>
+                  )}
+                  {displayedSubname && displayedSubname !== displayedName && (
+                    <div style={styles.contactCardSubname}>{displayedSubname}</div>
+                  )}
+                </div>
+                <div style={styles.contactCardActions}>
+                  {displayedPhone && (
+                    <a
+                      href={`tel:${displayedPhone.replace(/[^0-9+]/g, '')}`}
+                      style={styles.contactCallBtn}
+                      aria-label={`Call ${displayedName || 'listing agent'}`}
+                    >
+                      <Icon.Phone size={14}/>
+                      <span>{displayedPhone}</span>
+                    </a>
+                  )}
+                  {displayedEmail && (
+                    <a
+                      href={`mailto:${displayedEmail}`}
+                      style={styles.contactEmailBtn}
+                      aria-label={`Email ${displayedName || 'listing agent'}`}
+                    >
+                      <Icon.Mail size={14}/>
+                      <span>Email</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
           <div style={styles.specs}>
             {listing.beds != null && <div style={styles.spec}><strong>{listing.beds}</strong> beds</div>}
             {listing.baths != null && <div style={styles.spec}><strong>{listing.baths}</strong> baths</div>}
@@ -409,54 +488,27 @@ export default function ListingDetail() {
                   <span style={styles.fairHousingText}>Equal Housing Opportunity</span>
                 </div>
               </div>
-              {/* Brokerage of Record — eXp Realty is the NJMLS participating
-                  broker for this IDX feed. Displayed here (with the listing,
-                  not just the page footer) so the broker of record is
-                  identified directly alongside the listing detail. Distinct
-                  from the per-listing brokerage shown below. */}
-              <div style={styles.brokerOfRecord}>
-                <span style={styles.brokerOfRecordLabel}>Brokerage of Record</span>
-                <img
-                  src="/brokers/exp-logo.png"
-                  alt="eXp Realty, LLC — Brokerage of Record"
-                  style={styles.brokerOfRecordLogo}
-                />
-              </div>
-              {listing.idx_list_office_name && (
-                <div style={styles.listingOffice}>
-                  <span style={styles.listingOfficeLabel}>Listing provided by: </span>
-                  <span style={styles.listingOfficeName}>{listing.idx_list_office_name}</span>
-                  {listing.idx_list_agent_full_name && (
-                    <span style={styles.listingAgentName}> · {listing.idx_list_agent_full_name}</span>
-                  )}
-                </div>
-              )}
-              {/* Listing contact — NJMLS 13.1(d) requires email/phone of the
-                  listing participant. Prefer agent phone (most specific); fall
-                  back to office phone, which the NJMLS feed populates on every
-                  listing. Append agent email when present. Office email is
-                  never provided by the feed, so it is intentionally omitted. */}
-              {(listing.idx_list_agent_phone || listing.idx_list_agent_email || listing.idx_list_office_phone) && (
-                <div style={styles.listingContact}>
-                  {listing.idx_list_agent_phone ? (
-                    <a href={`tel:${listing.idx_list_agent_phone.replace(/[^0-9+]/g, '')}`} style={styles.listingContactLink}>
-                      {listing.idx_list_agent_phone}
-                    </a>
-                  ) : listing.idx_list_office_phone ? (
-                    <a href={`tel:${listing.idx_list_office_phone.replace(/[^0-9+]/g, '')}`} style={styles.listingContactLink}>
-                      {listing.idx_list_office_phone}
-                    </a>
-                  ) : null}
-                  {listing.idx_list_agent_email && (
-                    <>
-                      {(listing.idx_list_agent_phone || listing.idx_list_office_phone) && <span style={styles.listingContactDot}> · </span>}
-                      <a href={`mailto:${listing.idx_list_agent_email}`} style={styles.listingContactLink}>
-                        {listing.idx_list_agent_email}
-                      </a>
-                    </>
-                  )}
-                </div>
-              )}
+              {/* The mid-page "Brokerage of Record + eXp logo" block was
+                  removed per NJMLS reviewer feedback. The reviewer noted the
+                  brokerage firm logo appearing below the NJMLS IDX logo in
+                  disclaimer areas — the NJMLS IDX mark is the one that
+                  belongs prominently with the disclaimer. eXp Realty remains
+                  identified as Brokerage of Record in the page footer block. */}
+              {/* "Listing provided by: [firm] · [agent]" intentionally NOT
+                  rendered here. Per NJMLS reviewer ("display the IDX
+                  disclaimer exactly as shown in the agreement"), the sample
+                  disclaimer in the IDX Agreement contains only the NJMLS IDX
+                  logo and the disclaimer paragraph — no per-listing
+                  attribution line. The per-listing brokerage and agent name
+                  are still displayed prominently in the Contact Agent card
+                  at the top of the listing, so this attribution isn't lost
+                  to the user; it just doesn't belong inside the disclaimer
+                  block per the agreement's reference format. */}
+              {/* Listing contact (phone/email) intentionally NOT rendered here.
+                  Per NJMLS reviewer feedback, the attribution was pulled up out
+                  of the compliance/disclaimer block and is now displayed
+                  prominently in the Contact Agent card near the top of the
+                  listing. */}
               <p style={styles.idxDisclaimer}>
                 The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. All information deemed reliable but not guaranteed. Source: New Jersey Multiple Listing Service, Inc. © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
               </p>
@@ -656,6 +708,67 @@ const styles = {
     boxShadow: '0 1px 8px rgba(0,0,0,0.04)',
   },
   priceRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, gap: 12 },
+
+  /* Contact Agent card — prominent placement just below the price/address
+     row, before bed/bath specs. Holds the NJMLS-required attribution
+     (phone/email) pulled up out of the compliance/disclaimer block per
+     reviewer feedback. Orange call button is the primary action; blue
+     email button is secondary. Soft orange-tinted background ties the
+     card to the warm primary action without screaming. Wraps to two rows
+     on narrow screens (info on top, buttons below). */
+  contactCard: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 16, flexWrap: 'wrap',
+    padding: '14px 18px',
+    background: 'rgba(249, 115, 22, 0.06)',
+    borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(249, 115, 22, 0.2)',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  contactCardLeft: {
+    display: 'flex', flexDirection: 'column', gap: 2,
+    minWidth: 0, flex: '1 1 auto',
+  },
+  contactCardLabel: {
+    fontSize: 10, fontWeight: 700,
+    letterSpacing: 0.6, textTransform: 'uppercase',
+    color: '#9a3412',
+    marginBottom: 2,
+  },
+  contactCardName: {
+    fontSize: 15, fontWeight: 700,
+    color: '#0f172a',
+    lineHeight: 1.3,
+  },
+  contactCardSubname: {
+    fontSize: 12, fontWeight: 500,
+    color: '#64748b',
+    lineHeight: 1.3,
+  },
+  contactCardActions: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    flexShrink: 0, flexWrap: 'wrap',
+  },
+  contactCallBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 16px',
+    background: '#f97316', color: '#fff',
+    borderRadius: 8,
+    fontSize: 13, fontWeight: 700,
+    textDecoration: 'none',
+    boxShadow: '0 1px 3px rgba(249,115,22,0.3)',
+    transition: 'background 120ms ease, transform 120ms ease',
+  },
+  contactEmailBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 16px',
+    background: '#1a6cf5', color: '#fff',
+    borderRadius: 8,
+    fontSize: 13, fontWeight: 700,
+    textDecoration: 'none',
+    boxShadow: '0 1px 3px rgba(26,108,245,0.3)',
+    transition: 'background 120ms ease, transform 120ms ease',
+  },
   price: { fontFamily: 'var(--serif)', fontSize: 32, fontWeight: 700, color: '#0f172a', marginBottom: 4 },
   address: { fontSize: 16, color: '#334155', marginBottom: 4 },
   hood: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#64748b' },
@@ -741,25 +854,6 @@ const styles = {
     borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
   },
   idxComplianceTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' },
-  /* Brokerage of Record — participating broker (eXp) identifier, shown
-     inside the IDX compliance block alongside the listing. The bottom
-     border separates it from the per-listing "Listing provided by" line
-     so the two brokerages don't read as one. */
-  brokerOfRecord: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    paddingBottom: 10, marginBottom: 10,
-    borderBottom: '1px solid #e2e8f0',
-  },
-  brokerOfRecordLabel: {
-    fontSize: 10, fontWeight: 700,
-    letterSpacing: 0.6, textTransform: 'uppercase',
-    color: '#94a3b8',
-  },
-  brokerOfRecordLogo: {
-    height: 30,
-    width: 'auto',
-    display: 'block',
-  },
   /* NJMLS IDX logo — real authorized mark from NJMLS. 22px height fits
      the disclosure block visually alongside the Fair Housing box. */
   idxLogo: {
@@ -769,13 +863,6 @@ const styles = {
   },
   fairHousingBox: { display: 'flex', alignItems: 'center', gap: 5, color: '#475569' },
   fairHousingText: { fontSize: 11, fontWeight: 700, color: '#475569' },
-  listingOffice: { fontSize: 16, color: '#475569', marginBottom: 8 },
-  listingOfficeLabel: { color: '#94a3b8' },
-  listingOfficeName: { fontWeight: 700, color: '#334155' },
-  listingAgentName: { color: '#334155' },
-  listingContact: { fontSize: 14, color: '#475569', marginBottom: 8 },
-  listingContactLink: { color: '#1a6cf5', textDecoration: 'none', fontWeight: 600 },
-  listingContactDot: { color: '#94a3b8' },
   idxDisclaimer: { fontSize: 11, color: '#94a3b8', lineHeight: 1.65, margin: '8px 0 4px' },
   idxUpdated: { fontSize: 11, color: '#94a3b8', margin: 0 },
 
