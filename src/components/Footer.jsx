@@ -41,11 +41,21 @@ export default function Footer() {
      IMPORTANT: use startsWith('/listing/') WITH the trailing slash so it
      matches /listing/abc-123 but NOT /listings (which would otherwise
      match '/listing' as a prefix). */
+  const isListingDetail = pathname.startsWith('/listing/')
   const showBrokerBlock =
     pathname === '/' ||
     pathname === '/listings' ||
     pathname === '/saved' ||
-    pathname.startsWith('/listing/')
+    isListingDetail
+
+  /* The NJMLS IDX disclaimer block is also gated on NOT being a listing
+     detail page — that page already renders a per-listing NJMLS IDX
+     disclaimer in its compliance section (with the per-listing updated
+     date), so a second copy in the footer would be redundant. The
+     Brokerage of Record block above still renders on all surfaces in
+     showBrokerBlock, including listing detail pages, since the broker
+     identification isn't duplicated anywhere else. */
+  const showIdxDisclaimer = showBrokerBlock && !isListingDetail
 
   return (
     <footer style={styles.footer}>
@@ -105,23 +115,30 @@ export default function Footer() {
                 NJMLS IDX logo, then three separate paragraphs (body,
                 source/updated, copyright). No brokerage logo embedded.
                 Date is currently hardcoded; should be wired to a real
-                site-update date when available. */}
-            <div style={styles.idxBlock}>
-              <img
-                src="/brokers/njmls-idx-logo.png"
-                alt="NJMLS Internet Data Exchange"
-                style={styles.idxLogo}
-              />
-              <p style={styles.idxDisclaimer}>
-                The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website.
-              </p>
-              <p style={styles.idxDisclaimer}>
-                All information deemed reliable but not guaranteed. Last date updated: 05/27/2026. Source: New Jersey Multiple Listing Service, Inc.
-              </p>
-              <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
-                © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
-              </p>
-            </div>
+                site-update date when available.
+
+                Hidden on listing detail pages — that page renders its own
+                per-listing IDX disclaimer in the compliance section (with
+                the listing's actual updated date), so a second copy in
+                the footer would be redundant. */}
+            {showIdxDisclaimer && (
+              <div style={styles.idxBlock}>
+                <img
+                  src="/brokers/njmls-idx-logo.png"
+                  alt="NJMLS Internet Data Exchange"
+                  style={styles.idxLogo}
+                />
+                <p style={styles.idxDisclaimer}>
+                  The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website.
+                </p>
+                <p style={styles.idxDisclaimer}>
+                  All information deemed reliable but not guaranteed. Last date updated: 05/27/2026. Source: New Jersey Multiple Listing Service, Inc.
+                </p>
+                <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
+                  © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
+                </p>
+              </div>
+            )}
 
             {/* ----- Block 2: Brokerage of Record (eXp) ----- */}
             <div style={styles.brokerBlock}>
