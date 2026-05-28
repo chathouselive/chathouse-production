@@ -25,11 +25,12 @@ export default function Footer() {
   const year = new Date().getFullYear()
   const { pathname } = useLocation()
 
-  /* Show the brokerage disclosure block only on pages where MLS listing data is
-     displayed or could be displayed. The NJ co-branding rule applies when both
-     brands are presented to the consumer simultaneously — on internal product
-     pages (profile, dashboard, messages, etc.) Chathouse is the only brand
-     present, so no co-branding disclosure is required.
+  /* Show the brokerage + IDX disclaimer blocks only on pages where MLS
+     listing data is displayed or could be displayed. The NJ co-branding
+     rule applies when both brands are presented to the consumer
+     simultaneously — on internal product pages (profile, dashboard,
+     messages, etc.) Chathouse is the only brand present, so no
+     co-branding disclosure is required.
 
      Allowed routes:
        /                  Landing page
@@ -38,8 +39,8 @@ export default function Footer() {
        /saved             Saved MLS listings
 
      IMPORTANT: use startsWith('/listing/') WITH the trailing slash so it
-     matches /listing/abc-123 but NOT /listings (which would otherwise match
-     '/listing' as a prefix). */
+     matches /listing/abc-123 but NOT /listings (which would otherwise
+     match '/listing' as a prefix). */
   const showBrokerBlock =
     pathname === '/' ||
     pathname === '/listings' ||
@@ -87,38 +88,66 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* ============= Brokerage Disclosure block =============
+        {/* ============= Brokerage of Record + IDX Disclaimer =============
+            Two separate, distinct blocks per NJMLS reviewer feedback. The
+            eXp Brokerage of Record block identifies the participating
+            broker. The NJMLS IDX disclaimer block sits separately below
+            and matches the agreement sample exactly (NJMLS IDX logo +
+            three-paragraph disclaimer, no brokerage logo embedded).
+
             Only rendered on pages where MLS listing data is displayed.
             Hidden on profiles, dashboards, messages, settings, admin, etc.
             See showBrokerBlock logic at top of component. */}
         {showBrokerBlock && (
-          <div style={styles.brokerBlock}>
-            <div style={styles.brokerBlockLabel}>Brokerage of Record</div>
-
-            <div style={styles.brokerBrandRow}>
+          <>
+            {/* ----- Block 1: NJMLS IDX Disclaimer ----- */}
+            {/* Matches the NJMLS IDX Agreement's sample disclaimer exactly:
+                NJMLS IDX logo, then three separate paragraphs (body,
+                source/updated, copyright). No brokerage logo embedded.
+                Date is currently hardcoded; should be wired to a real
+                site-update date when available. */}
+            <div style={styles.idxBlock}>
               <img
-                src="/brokers/exp-logo.png"
-                alt="eXp Realty, LLC"
-                style={styles.expLogo}
+                src="/brokers/njmls-idx-logo.png"
+                alt="NJMLS Internet Data Exchange"
+                style={styles.idxLogo}
               />
-              <div style={styles.brokerBrandInfo}>
-                <div style={styles.brokerName}>eXp Realty, LLC</div>
-                <div style={styles.brokerAddress}>
-                  28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
-                </div>
-              </div>
+              <p style={styles.idxDisclaimer}>
+                The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website.
+              </p>
+              <p style={styles.idxDisclaimer}>
+                All information deemed reliable but not guaranteed. Last date updated: 05/27/2026. Source: New Jersey Multiple Listing Service, Inc.
+              </p>
+              <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
+                © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
+              </p>
             </div>
 
-            <div style={styles.brokerDivider} />
+            {/* ----- Block 2: Brokerage of Record (eXp) ----- */}
+            <div style={styles.brokerBlock}>
+              <div style={styles.brokerBlockLabel}>Brokerage of Record</div>
 
-            <p style={styles.brokerLead}>
-              Listings displayed on Chathouse are provided through <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong>, a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Your eXp Realty point of contact for this site is <strong style={styles.brokerHighlight}>Naeem Boucher, Realtor</strong> (NJ Real Estate License #1017034).
-            </p>
+              <div style={styles.brokerBrandRow}>
+                <img
+                  src="/brokers/exp-logo.png"
+                  alt="eXp Realty, LLC"
+                  style={styles.expLogo}
+                />
+                <div style={styles.brokerBrandInfo}>
+                  <div style={styles.brokerName}>eXp Realty, LLC</div>
+                  <div style={styles.brokerAddress}>
+                    28 Valley Road, #1, Montclair, NJ 07042 · <a href="tel:9734050095" style={styles.brokerPhone}>(973) 405-0095</a>
+                  </div>
+                </div>
+              </div>
 
-            <p style={styles.brokerIDX}>
-              The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. All information deemed reliable but not guaranteed. Source: New Jersey Multiple Listing Service, Inc. © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
-            </p>
-          </div>
+              <div style={styles.brokerDivider} />
+
+              <p style={styles.brokerLead}>
+                Listings displayed on Chathouse are provided through <strong style={styles.brokerHighlight}>eXp Realty, LLC</strong>, a participating member of the New Jersey Multiple Listing Service, Inc. (NJMLS). Your eXp Realty point of contact for this site is <strong style={styles.brokerHighlight}>Naeem Boucher, Realtor</strong> (NJ Real Estate License #1017034).
+              </p>
+            </div>
+          </>
         )}
 
         <div style={styles.divider} />
@@ -155,7 +184,7 @@ const styles = {
   navHeader: { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#475569', marginBottom: 4 },
   navLink: { fontSize: 13, color: '#94a3b8', textDecoration: 'none', lineHeight: 1.4 },
 
-  // Brokerage block — eXp Realty is the dominant brand here
+  // ===== Block 2 (bottom): Brokerage of Record (eXp Realty) =====
   brokerBlock: {
     background: '#162032',
     borderRadius: 12,
@@ -173,8 +202,6 @@ const styles = {
     color: '#93c5fd',
     marginBottom: 18,
   },
-
-  // Brand row — eXp logo + brokerage name large and prominent
   brokerBrandRow: {
     display: 'flex',
     alignItems: 'center',
@@ -211,30 +238,50 @@ const styles = {
     color: '#94a3b8',
     textDecoration: 'none',
   },
-
   brokerDivider: {
     height: 1,
     background: '#1e293b',
     marginBottom: 18,
   },
-
   brokerLead: {
     fontSize: 13,
     color: '#cbd5e1',
     lineHeight: 1.65,
-    marginBottom: 12,
+    marginBottom: 0,
     marginTop: 0,
   },
   brokerHighlight: {
     color: '#fff',
     fontWeight: 700,
   },
-  brokerIDX: {
-    fontSize: 11,
-    color: '#64748b',
+
+  // ===== Block 1 (top): NJMLS IDX Disclaimer (matches agreement sample) =====
+  idxBlock: {
+    background: '#162032',
+    borderRadius: 12,
+    padding: 28,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#1e293b',
+  },
+  /* NJMLS IDX logo — standalone above the disclaimer paragraphs, per
+     the agreement sample. White-tile padding so the colored logo reads
+     cleanly on the dark footer background. */
+  idxLogo: {
+    height: 36,
+    width: 'auto',
+    display: 'block',
+    background: '#fff',
+    padding: '8px 14px',
+    borderRadius: 8,
+    marginBottom: 18,
+  },
+  idxDisclaimer: {
+    fontSize: 12,
+    color: '#94a3b8',
     lineHeight: 1.7,
-    marginTop: 0,
-    marginBottom: 0,
+    margin: '0 0 14px',
   },
 
   // Divider + bottom row
