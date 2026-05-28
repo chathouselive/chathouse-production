@@ -477,43 +477,28 @@ export default function ListingDetail() {
 
           {isIDX && (
             <div style={styles.idxCompliance}>
-              <div style={styles.idxComplianceTop}>
-                <img
-                  src="/brokers/njmls-idx-logo.png"
-                  alt="NJMLS Internet Data Exchange"
-                  style={styles.idxLogo}
-                />
-                <div style={styles.fairHousingBox}>
-                  <Icon.Scales size={13}/>
-                  <span style={styles.fairHousingText}>Equal Housing Opportunity</span>
-                </div>
-              </div>
-              {/* The mid-page "Brokerage of Record + eXp logo" block was
-                  removed per NJMLS reviewer feedback. The reviewer noted the
-                  brokerage firm logo appearing below the NJMLS IDX logo in
-                  disclaimer areas — the NJMLS IDX mark is the one that
-                  belongs prominently with the disclaimer. eXp Realty remains
-                  identified as Brokerage of Record in the page footer block. */}
-              {/* "Listing provided by: [firm] · [agent]" intentionally NOT
-                  rendered here. Per NJMLS reviewer ("display the IDX
-                  disclaimer exactly as shown in the agreement"), the sample
-                  disclaimer in the IDX Agreement contains only the NJMLS IDX
-                  logo and the disclaimer paragraph — no per-listing
-                  attribution line. The per-listing brokerage and agent name
-                  are still displayed prominently in the Contact Agent card
-                  at the top of the listing, so this attribution isn't lost
-                  to the user; it just doesn't belong inside the disclaimer
-                  block per the agreement's reference format. */}
-              {/* Listing contact (phone/email) intentionally NOT rendered here.
-                  Per NJMLS reviewer feedback, the attribution was pulled up out
-                  of the compliance/disclaimer block and is now displayed
-                  prominently in the Contact Agent card near the top of the
-                  listing. */}
+              {/* Disclaimer block matches the NJMLS IDX Agreement's sample
+                  disclaimer exactly: NJMLS IDX logo, then the disclaimer
+                  paragraph, then last-updated. The agreement's reference
+                  format does NOT include an Equal Housing badge here, the
+                  per-listing brokerage attribution, or any other brokerage
+                  logo (e.g. eXp). Fair Housing is still displayed elsewhere
+                  on the listing in the dedicated Fair Housing strip below;
+                  it just doesn't belong inside this disclaimer block per
+                  the agreement. */}
+              <img
+                src="/brokers/njmls-idx-logo.png"
+                alt="NJMLS Internet Data Exchange"
+                style={styles.idxLogo}
+              />
               <p style={styles.idxDisclaimer}>
-                The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website. The information being provided is for consumer's personal, non-commercial use and may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. All information deemed reliable but not guaranteed. Source: New Jersey Multiple Listing Service, Inc. © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
+                The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website.
               </p>
-              <p style={styles.idxUpdated}>
-                Last updated: {listing.updated_at ? new Date(listing.updated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
+              <p style={styles.idxDisclaimer}>
+                All information deemed reliable but not guaranteed. Last date updated: {listing.updated_at ? new Date(listing.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'Recently'}. Source: New Jersey Multiple Listing Service, Inc.
+              </p>
+              <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
+                © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
               </p>
             </div>
           )}
@@ -853,18 +838,17 @@ const styles = {
     background: '#f8fafc', borderRadius: 12,
     borderWidth: 1, borderStyle: 'solid', borderColor: '#e2e8f0',
   },
-  idxComplianceTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' },
-  /* NJMLS IDX logo — real authorized mark from NJMLS. 22px height fits
-     the disclosure block visually alongside the Fair Housing box. */
+  /* NJMLS IDX logo — real authorized mark from NJMLS. Standalone in
+     the disclaimer block per the agreement sample (no Equal Housing
+     badge next to it). Bottom margin provides breathing room before
+     the disclaimer paragraph, matching the agreement's spacing. */
   idxLogo: {
-    height: 22,
+    height: 28,
     width: 'auto',
     display: 'block',
+    marginBottom: 14,
   },
-  fairHousingBox: { display: 'flex', alignItems: 'center', gap: 5, color: '#475569' },
-  fairHousingText: { fontSize: 11, fontWeight: 700, color: '#475569' },
-  idxDisclaimer: { fontSize: 11, color: '#94a3b8', lineHeight: 1.65, margin: '8px 0 4px' },
-  idxUpdated: { fontSize: 11, color: '#94a3b8', margin: 0 },
+  idxDisclaimer: { fontSize: 12, color: '#64748b', lineHeight: 1.7, margin: '0 0 14px' },
 
   fairHousingStrip: {
     display: 'flex', alignItems: 'center', gap: 8,
