@@ -114,8 +114,9 @@ export default function Footer() {
             {/* Matches the NJMLS IDX Agreement's sample disclaimer exactly:
                 NJMLS IDX logo, then three separate paragraphs (body,
                 source/updated, copyright). No brokerage logo embedded.
-                Date is currently hardcoded; should be wired to a real
-                site-update date when available.
+                Date renders dynamically as today's date in MM/DD/YYYY
+                format, matching the pattern used by other NJMLS-approved
+                IDX sites.
 
                 Hidden on listing detail pages — that page renders its own
                 per-listing IDX disclaimer in the compliance section (with
@@ -132,7 +133,7 @@ export default function Footer() {
                   The data relating to the real estate for sale on this web site comes in part from the Internet Data Exchange Program of the NJMLS. Real estate listings held by brokerage firms other than eXp Realty, LLC are marked with the Internet Data Exchange logo and information about them includes the name of the listing brokers. Some properties listed with the participating brokers do not appear on this website at the request of the seller. Listings of brokers that do not participate in Internet Data Exchange do not appear on this website.
                 </p>
                 <p style={styles.idxDisclaimer}>
-                  All information deemed reliable but not guaranteed. Last date updated: 05/27/2026. Source: New Jersey Multiple Listing Service, Inc.
+                  All information deemed reliable but not guaranteed. Last date updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}. Source: New Jersey Multiple Listing Service, Inc.
                 </p>
                 <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
                   © 2026 New Jersey Multiple Listing Service, Inc. All rights reserved.
