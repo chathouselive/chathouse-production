@@ -135,7 +135,7 @@ export default function Footer() {
                   All information deemed reliable but not guaranteed. Last date updated: 05/27/2026. Source: New Jersey Multiple Listing Service, Inc.
                 </p>
                 <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
-                  © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
+                  © 2026 New Jersey Multiple Listing Service, Inc. All rights reserved.
                 </p>
               </div>
             )}

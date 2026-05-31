@@ -291,13 +291,6 @@ export default function ListingDetail() {
               <Icon.Building size={11}/> Community Listed
             </div>
           )}
-          {isIDX && (
-            <img
-              src="/brokers/njmls-idx-logo.png"
-              alt="NJMLS Internet Data Exchange"
-              style={styles.idxBadge}
-            />
-          )}
 
           {/* Gallery button — bottom-right of hero, only when 2+ photos */}
           {hasGallery && (
@@ -377,7 +370,7 @@ export default function ListingDetail() {
             return (
               <div style={styles.contactCard}>
                 <div style={styles.contactCardLeft}>
-                  <div style={styles.contactCardLabel}>Contact Agent</div>
+                  <div style={styles.contactCardLabel}>Listed by</div>
                   {displayedName && (
                     <div style={styles.contactCardName}>{displayedName}</div>
                   )}
@@ -498,7 +491,7 @@ export default function ListingDetail() {
                 All information deemed reliable but not guaranteed. Last date updated: {listing.updated_at ? new Date(listing.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'Recently'}. Source: New Jersey Multiple Listing Service, Inc.
               </p>
               <p style={{ ...styles.idxDisclaimer, marginBottom: 0 }}>
-                © 2024 New Jersey Multiple Listing Service, Inc. All rights reserved.
+                © 2026 New Jersey Multiple Listing Service, Inc. All rights reserved.
               </p>
             </div>
           )}
@@ -636,16 +629,6 @@ const styles = {
     borderRadius: 100, fontSize: 11, fontWeight: 700,
     letterSpacing: 0.3, textTransform: 'uppercase',
   },
-  /* NJMLS IDX logo overlay — bottom-left of hero image. Real authorized
-     mark from NJMLS. Drop shadow keeps it readable against any photo. */
-  idxBadge: {
-    position: 'absolute', bottom: 16, left: 16,
-    height: 40,
-    width: 'auto',
-    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-    display: 'block',
-  },
-
   /* Gallery button — bottom-right of hero */
   galleryBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
