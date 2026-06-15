@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import TopNav from '../components/TopNav'
+import BrokerStrip from '../components/BrokerStrip'
 import ListingCard from '../components/ListingCard'
 import Footer from '../components/Footer'
 import { useListings } from '../lib/useListings'
@@ -108,6 +109,7 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      <BrokerStrip />
       <TopNav />
 
       <div style={styles.filters}>
